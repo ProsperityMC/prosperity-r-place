@@ -20,6 +20,10 @@ func main() {
 	if err != nil {
 		log.Fatal("Failed to make '.data' directory:", err)
 	}
+	err = os.MkdirAll(".data/images", os.ModePerm)
+	if err != nil {
+		log.Fatal("Failed to make '.data/images' directory:", err)
+	}
 
 	openConf, err := os.Open(".data/config.yml")
 	if err != nil {
@@ -61,14 +65,25 @@ func main() {
 	}
 
 	router := mux.NewRouter()
-	router.Handle("/", cors(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-		if websocket.IsWebSocketUpgrade(req) {
-			upgrade, err := wsUpgrader.Upgrade(rw, req, rw.Header())
-			if err != nil {
-				http.Error(rw, "Failed to upgrade to websocket connection", http.StatusServiceUnavailable)
+	router.HandleFunc("/", func(rw http.ResponseWriter, req *http.Request) {
+		rw.WriteHeader(http.StatusOK)
+		_, _ = rw.Write([]byte("Hello World!"))
+	})
+	router.Handle("/{name}", cors(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		vars := mux.Vars(req)
+		name := vars["name"]
+		if manager, ok := managers[name]; ok {
+			if websocket.IsWebSocketUpgrade(req) {
+				upgrade, err := wsUpgrader.Upgrade(rw, req, rw.Header())
+				if err != nil {
+					http.Error(rw, "Failed to upgrade to websocket connection", http.StatusServiceUnavailable)
+				}
+				go prosperity_r_place.HandleWebsocket(upgrade, manager)
+				return
 			}
-			go prosperity_r_place.HandleWebsocket(upgrade)
-			return
+			rw.Header().Set("Content-Type", "image/png")
+			rw.WriteHeader(http.StatusOK)
+
 		}
 	})))
 	server := &http.Server{
@@ -76,7 +91,10 @@ func main() {
 		Addr:    conf.Listen,
 	}
 	go func() {
-		_ = server.ListenAndServe()
+		err := server.ListenAndServe()
+		if err != nil && err != http.ErrServerClosed {
+			log.Println("[Main] Listen and serve error:", err)
+		}
 	}()
 
 	// Wait for exit signal

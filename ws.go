@@ -4,10 +4,11 @@ import (
 	"bufio"
 	"github.com/gorilla/websocket"
 	"image/color"
+	"prosperity-r-place/utils"
 	"strconv"
 )
 
-func HandleWebsocket(conn *websocket.Conn) {
+func HandleWebsocket(conn *websocket.Conn, manager *Manager) {
 	defer func(conn *websocket.Conn) {
 		_ = conn.Close()
 	}(conn)
@@ -41,27 +42,20 @@ outer:
 					break outer
 				}
 			case 2:
-
+				text := scanner.Text()
+				if text[0] == '#' {
+					colourParse, err := strconv.ParseInt(text[1:], 16, 64)
+					if err != nil {
+						break outer
+					}
+					b1 := colourParse & 0xff
+					g1 := (colourParse >> 8) & 0xff
+					r1 := (colourParse >> 16) & 0xff
+					colour = color.RGBA{R: uint8(r1), G: uint8(g1), B: uint8(b1)}
+				}
 			}
 		}
 
-		// read X coordinate string
-		xStr, err := rBuf.ReadString(',')
-		if err != nil {
-			// bad packet
-			break
-		}
-
-		// read Y coordinate string (
-		yStr, err := rBuf.ReadString(',')
-		if err != nil {
-			return
-		}
-
-		// read colour string (line ends with \n)
-		colourStr, err := rBuf.ReadString('\n')
-		if err != nil {
-			return
-		}
+		manager.placing <- utils.Pixel{X: x, Y: y, Colour: colour}
 	}
 }

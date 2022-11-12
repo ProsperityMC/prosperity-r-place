@@ -1,6 +1,7 @@
 package prosperity_r_place
 
 import (
+	"bytes"
 	"fmt"
 	"image"
 	"image/png"
@@ -11,7 +12,7 @@ import (
 	"time"
 )
 
-const saveInterval = time.Second * 30
+const saveInterval = time.Second * 10
 
 type Manager struct {
 	file    *os.File
@@ -22,12 +23,15 @@ type Manager struct {
 	save    *time.Timer
 	done    *utils.DoneChan
 	wg      *sync.WaitGroup
+	cache   []byte
+	cacheS  *sync.RWMutex
 }
 
 func NewManager(name string, width, height int) (*Manager, error) {
+	fmt.Printf("[Manager] %s\n", name)
 	create, err := os.Create(fmt.Sprintf(".data/images/%s.png", name))
 	if err != nil {
-		return nil, fmt.Errorf("failed to open '.data/images/%s.png' for writing: %w", err)
+		return nil, fmt.Errorf("failed to open '.data/images/%s.png' for writing: %w", name, err)
 	}
 	m := &Manager{
 		file:    create,
@@ -38,7 +42,10 @@ func NewManager(name string, width, height int) (*Manager, error) {
 		save:    time.NewTimer(saveInterval),
 		done:    utils.NewDoneChan(),
 		wg:      &sync.WaitGroup{},
+		cache:   nil,
+		cacheS:  &sync.RWMutex{},
 	}
+	m.save.Stop()
 	// increment the wait group and start backgroundIO goroutine
 	m.wg.Add(1)
 	go m.backgroundIO()
@@ -58,6 +65,13 @@ func (m *Manager) Close() {
 	_ = m.file.Close()
 }
 
+// Image returns the current cached image
+func (m *Manager) Image() []byte {
+	m.cacheS.RLock()
+	defer m.cacheS.RUnlock()
+	return m.cache
+}
+
 // backgroundIO handles all IO operations in a single thread
 func (m *Manager) backgroundIO() {
 	defer m.wg.Done()
@@ -67,7 +81,7 @@ outer:
 		select {
 		case pixel := <-m.placing:
 			// set the pixel
-			m.img.SetRGBA(pixel.X, pixel.Y, pixel.Colour)
+			m.img.SetRGBA(int(pixel.X), int(pixel.Y), pixel.Colour)
 			// if the last operation was not a save then restart the save timer
 			if !lastSave {
 				m.save.Reset(saveInterval)
@@ -92,9 +106,14 @@ outer:
 
 func (m *Manager) saveImage() {
 	// png encode the image to a file and log errors
-	err := png.Encode(m.file, m.img)
+	buf := new(bytes.Buffer)
+	err := png.Encode(buf, m.img)
 	if err != nil {
 		log.Println("[Manager::backgroundIO] Failed to save PNG image:", err)
 		return
 	}
+	m.cacheS.Lock()
+	m.cache = buf.Bytes()
+	m.cacheS.Unlock()
+	_, _ = m.file.ReadFrom(buf)
 }
