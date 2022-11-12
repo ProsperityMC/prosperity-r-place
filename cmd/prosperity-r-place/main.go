@@ -5,16 +5,40 @@ import (
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
+	"gopkg.in/yaml.v3"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
+	prosperity_r_place "prosperity-r-place"
 	"syscall"
 	"time"
 )
 
 func main() {
-	manager:= NewManager()
+	err := os.MkdirAll(".data", os.ModePerm)
+	if err != nil {
+		log.Fatal("Failed to make '.data' directory:", err)
+	}
+
+	openConf, err := os.Open(".data/config.yml")
+	if err != nil {
+		log.Fatal("Failed to open '.data/config.yml':", err)
+	}
+	var conf Config
+	err = yaml.NewDecoder(openConf).Decode(&conf)
+	if err != nil {
+		log.Fatal("Failed to decode config:", err)
+	}
+
+	managers := make(map[string]*prosperity_r_place.Manager)
+	for i, slot := range conf.Slots {
+		manager, err := prosperity_r_place.NewManager(slot.Name, slot.Width, slot.Height)
+		if err != nil {
+			log.Fatalf("error with slot %d: %v", i, err)
+		}
+		managers[slot.Name] = manager
+	}
 
 	cors := handlers.CORS(
 		handlers.AllowCredentials(),
@@ -43,13 +67,13 @@ func main() {
 			if err != nil {
 				http.Error(rw, "Failed to upgrade to websocket connection", http.StatusServiceUnavailable)
 			}
-			go
+			go prosperity_r_place.HandleWebsocket(upgrade)
 			return
 		}
 	})))
 	server := &http.Server{
 		Handler: router,
-		Addr:    os.Getenv("LISTEN"),
+		Addr:    conf.Listen,
 	}
 	go func() {
 		_ = server.ListenAndServe()

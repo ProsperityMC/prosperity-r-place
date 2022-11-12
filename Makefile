@@ -15,7 +15,11 @@ ENTRY = ./cmd/prosperity-r-place
 all: build
 
 build:
+	mkdir -p dist/
 	$(CC) build -o $(OUT) $(ENTRY)
+
+run: build
+	$(OUT)
 
 test:
 	$(CC) test ./...
