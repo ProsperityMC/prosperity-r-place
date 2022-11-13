@@ -66,8 +66,9 @@ func main() {
 
 	router := mux.NewRouter()
 	router.HandleFunc("/", func(rw http.ResponseWriter, req *http.Request) {
+		rw.Header().Set("Content-Type", "text/html")
 		rw.WriteHeader(http.StatusOK)
-		_, _ = rw.Write([]byte("Hello World!"))
+		_, _ = rw.Write([]byte("Hello World!\n"))
 	})
 	router.Handle("/{name}", cors(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		vars := mux.Vars(req)
@@ -83,8 +84,10 @@ func main() {
 			}
 			rw.Header().Set("Content-Type", "image/png")
 			rw.WriteHeader(http.StatusOK)
-
+			_, _ = rw.Write(manager.Image())
+			return
 		}
+		http.Error(rw, "404 Not Found", http.StatusNotFound)
 	})))
 	server := &http.Server{
 		Handler: router,

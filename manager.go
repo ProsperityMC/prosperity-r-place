@@ -45,7 +45,8 @@ func NewManager(name string, width, height int) (*Manager, error) {
 		cache:   nil,
 		cacheS:  &sync.RWMutex{},
 	}
-	m.save.Stop()
+	// generate the first cache of the image
+	m.saveImage()
 	// increment the wait group and start backgroundIO goroutine
 	m.wg.Add(1)
 	go m.backgroundIO()
@@ -83,7 +84,7 @@ outer:
 			// set the pixel
 			m.img.SetRGBA(int(pixel.X), int(pixel.Y), pixel.Colour)
 			// if the last operation was not a save then restart the save timer
-			if !lastSave {
+			if lastSave {
 				m.save.Reset(saveInterval)
 			}
 			lastSave = false
