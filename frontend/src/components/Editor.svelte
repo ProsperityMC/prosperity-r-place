@@ -9,6 +9,7 @@
   let showMenu = true;
   let showPalette = true;
   let menuSel = "pan";
+  let shapeSel = "circle";
   let paletteSel = {name: "transparent", hex: "#ffffffff"};
   let scale = 1;
 
@@ -33,6 +34,14 @@
     {key: "shape", icon: "shape_line", select: true},
     {key: "select", icon: "select_all", select: true},
     {key: "deselect", icon: "deselect", select: false},
+  ];
+
+  const shapeButtons = [
+    {key: "circle", icon: "circle", select: true},
+    {key: "triagle", icon: "change_history", select: true},
+    {key: "square", icon: "square", select: true},
+    {key: "pentagon", icon: "pentagon", select: true},
+    {key: "hexagon", icon: "hexagon", select: true},
   ];
 </script>
 
@@ -79,7 +88,18 @@
         </div>
         {#if menuSel == "shape"}
           <div id="editor-shapes">
-            <div class="tool-button" data-icon="square" />
+            {#each shapeButtons as b (b.key)}
+              <div
+                class="tool-button {menuSel == b.key ? 'tool-button-sel' : ''}"
+                data-icon={b.icon}
+                on:click={() => {
+                  if (b.select) shapeSel = b.key;
+                }}
+                on:keypress={() => {
+                  if (b.select) shapeSel = b.key;
+                }}
+              />
+            {/each}
           </div>
         {/if}
       {/if}
@@ -139,7 +159,7 @@
     > #editor-navbar {
       display: flex;
       flex-direction: row;
-      background-color: darken($theme-bg, 5);
+      background-color: darken($theme-bg, 3);
       height: 48px;
     }
 
@@ -151,8 +171,12 @@
 
       > #editor-tools {
         width: 48px;
-        height: 100%;
-        background-color: darken($theme-bg, 5);
+        background-color: darken($theme-bg, 3);
+      }
+
+      > #editor-shapes {
+        width: 48px;
+        background-color: darken($theme-bg, 6);
       }
 
       > #editor-doc {
@@ -164,7 +188,7 @@
         display: flex;
         flex-direction: row;
         height: 100%;
-        background-color: darken($theme-bg, 5);
+        background-color: darken($theme-bg, 3);
         overflow-y: auto;
 
         > .palette-panel {
@@ -175,9 +199,9 @@
     }
 
     > #editor-statusbar {
-      height: 24px;
-      line-height: 24px;
-      background-color: darken($theme-bg, 5);
+      height: 32px;
+      line-height: 32px;
+      background-color: darken($theme-bg, 3);
       display: flex;
 
       > #editor-zoom {
@@ -185,24 +209,24 @@
 
         .icon {
           @include mso;
-          width: 24px;
-          height: 24px;
+          width: 32px;
+          height: 32px;
           display: flex;
 
           &::before {
             @include mso;
-            width: 16px;
-            height: 16px;
+            width: 24px;
+            height: 24px;
             display: block;
             content: attr(data-icon);
             margin: auto;
-            font-size: 16px;
-            line-height: 16px;
+            font-size: 24px;
+            line-height: 24px;
             white-space: pre;
           }
 
           &:hover {
-            background-color: lighten($theme-bg, 5);
+            background-color: lighten($theme-bg, 3);
           }
         }
 
@@ -236,7 +260,7 @@
 
     &:hover,
     &.tool-button-sel {
-      background-color: lighten($theme-bg, 5);
+      background-color: lighten($theme-bg, 3);
     }
   }
 
@@ -246,8 +270,8 @@
     display: flex;
 
     > .palette-button-blob {
-      width: 24px;
-      height: 24px;
+      width: 32px;
+      height: 32px;
       margin: auto;
     }
   }

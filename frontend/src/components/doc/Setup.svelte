@@ -38,9 +38,6 @@
     if (frame >= 0) frame++;
     // !SECTION
 
-    // clear the document area
-    ctx.clearRect(offset, offset, width - offset, height - offset);
-
     // every 2s update the image using "_=timestamp"
     if ($t > lastImage + 2000) {
       lastImage = $t;

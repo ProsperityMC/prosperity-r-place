@@ -1,7 +1,7 @@
 <script lang="ts">
   import {onMount} from "svelte";
   import {Canvas} from "svelte-canvas";
-  import DocumentCanvas from "./DocumentCanvas.svelte";
+  import DocumentCanvas from "./doc/Setup.svelte";
 
   export let doc;
   export let menuSel;
@@ -11,6 +11,7 @@
   let canvasHeight = 1000;
   let mouseX = 0;
   let mouseY = 0;
+  let holdMouse = false;
   let docCanvas;
 
   onMount(() => {
@@ -18,16 +19,22 @@
     let can = docCanvas.getCanvas();
     can.addEventListener(
       "mousemove",
-      function (e) {
+      e => {
         mouseX = e.layerX;
         mouseY = e.layerY;
       },
       {passive: true},
     );
+    can.addEventListener("mousedown", () => {
+      holdMouse = true;
+    });
+    can.addEventListener("mouseup", () => {
+      holdMouse = false;
+    });
   });
 </script>
 
-<div class="document" bind:clientWidth={canvasWidth} bind:clientHeight={canvasHeight}>
+<div class="document {menuSel == 'pan' ? 'grab' : ''} {holdMouse ? 'grabbing' : ''}" bind:clientWidth={canvasWidth} bind:clientHeight={canvasHeight}>
   <Canvas width={canvasWidth} height={canvasHeight} style="position:absolute;" bind:this={docCanvas}>
     <DocumentCanvas docWidth={doc.width} docHeight={doc.height} {mouseX} {mouseY} bind:scale {...$$restProps} />
   </Canvas>
@@ -36,5 +43,13 @@
 <style lang="scss">
   .document {
     height: 100%;
+
+    &.grab {
+      cursor: grab;
+
+      &.grabbing {
+        cursor: grabbing;
+      }
+    }
   }
 </style>
