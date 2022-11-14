@@ -1,0 +1,44 @@
+[
+  {
+    "name": "Wool",
+    "options": [
+      {"name": "Black", "hex": "#121519"},
+      {"name": "Blue", "hex": "#35399d"},
+      {"name": "Brown", "hex": "#724728"},
+      {"name": "Cyan", "hex": "#158991"},
+      {"name": "Grey", "hex": "#3e4447"},
+      {"name": "Green", "hex": "#546d1b"},
+      {"name": "Light Blue", "hex": "#3aafd9"},
+      {"name": "Light Grey", "hex": "#8e8e86"},
+      {"name": "Lime", "hex": "#70b919"},
+      {"name": "Magenta", "hex": "#bd44b3"},
+      {"name": "Orange", "hex": "#f07613"},
+      {"name": "Pink", "hex": "#ed8dac"},
+      {"name": "Purple", "hex": "#792aac"},
+      {"name": "Red", "hex": "#a02722"},
+      {"name": "White", "hex": "#e9ecec"},
+      {"name": "Yellow", "hex": "#f8c527"}
+    ]
+  },
+  {
+    "name": "Concrete",
+    "options": [
+      {"name": "Black", "hex": "#080a0f"},
+      {"name": "Blue", "hex": "#2c2e8f"},
+      {"name": "Brown", "hex": "#603b1f"},
+      {"name": "Cyan", "hex": "#157788"},
+      {"name": "Grey", "hex": "#36393d"},
+      {"name": "Green", "hex": "#495b24"},
+      {"name": "Light Blue", "hex": "#2389c6"},
+      {"name": "Light Grey", "hex": "#7d7d73"},
+      {"name": "Lime", "hex": "#5ea818"},
+      {"name": "Magenta", "hex": "#a9309f"},
+      {"name": "Orange", "hex": "#e06100"},
+      {"name": "Pink", "hex": "#d5658e"},
+      {"name": "Purple", "hex": "#641f9c"},
+      {"name": "Red", "hex": "#8e2020"},
+      {"name": "White", "hex": "#cfd5d6"},
+      {"name": "Yellow", "hex": "#f0af15"}
+    ]
+  }
+]

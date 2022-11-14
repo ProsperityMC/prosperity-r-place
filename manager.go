@@ -73,6 +73,16 @@ func (m *Manager) Image() []byte {
 	return m.cache
 }
 
+// Width returns the image width
+func (m *Manager) Width() int {
+	return m.width
+}
+
+// Height returns the image height
+func (m *Manager) Height() int {
+	return m.height
+}
+
 // backgroundIO handles all IO operations in a single thread
 func (m *Manager) backgroundIO() {
 	defer m.wg.Done()

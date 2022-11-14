@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
@@ -70,7 +71,7 @@ func main() {
 		rw.WriteHeader(http.StatusOK)
 		_, _ = rw.Write([]byte("Hello World!\n"))
 	})
-	router.Handle("/{name}", cors(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+	router.Handle("/doc/{name}", cors(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		vars := mux.Vars(req)
 		name := vars["name"]
 		if manager, ok := managers[name]; ok {
@@ -82,9 +83,18 @@ func main() {
 				go prosperity_r_place.HandleWebsocket(upgrade, manager)
 				return
 			}
-			rw.Header().Set("Content-Type", "image/png")
+			if req.URL.Query().Get("raw") == "image" {
+				rw.Header().Set("Content-Type", "image/png")
+				rw.WriteHeader(http.StatusOK)
+				_, _ = rw.Write(manager.Image())
+				return
+			}
+			rw.Header().Set("Content-Type", "application/json")
 			rw.WriteHeader(http.StatusOK)
-			_, _ = rw.Write(manager.Image())
+			_ = json.NewEncoder(rw).Encode(map[string]int{
+				"width":  manager.Width(),
+				"height": manager.Height(),
+			})
 			return
 		}
 		http.Error(rw, "404 Not Found", http.StatusNotFound)

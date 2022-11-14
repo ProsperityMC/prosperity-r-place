@@ -1,0 +1,36 @@
+# EditorConfig is awesome: https://EditorConfig.org
+
+# top-most EditorConfig file
+root = true
+
+# Defaults
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+
+# CSS
+[*.css]
+indent_size = 2
+indent_style = space
+trim_trailing_whitespace = true
+
+# HTML
+[*.{htm,html}]
+indent_size = 2
+indent_style = space
+trim_trailing_whitespace = true
+
+# GNU make
+[Makefile]
+indent_style = tab
+
+# Svelte
+[*.svelte]
+indent_size = 2
+indent_style = space
+
+# YAML
+[*.{yaml,yml}]
+indent_size = 2
+indent_style = space
