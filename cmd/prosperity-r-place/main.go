@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/signal"
 	prosperity_r_place "prosperity-r-place"
+	"sort"
 	"syscall"
 	"time"
 )
@@ -71,6 +72,18 @@ func main() {
 		rw.WriteHeader(http.StatusOK)
 		_, _ = rw.Write([]byte("Hello World!\n"))
 	})
+	router.Handle("/docs", cors(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		a := make([]*prosperity_r_place.Manager, len(managers))
+		i := 0
+		for _, manager := range managers {
+			a[i] = manager
+			i++
+		}
+		sort.Slice(a, func(i, j int) bool { return a[i].Name < a[j].Name })
+		rw.Header().Set("Content-Type", "application/json")
+		rw.WriteHeader(http.StatusOK)
+		_ = json.NewEncoder(rw).Encode(a)
+	})))
 	router.Handle("/doc/{name}", cors(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		vars := mux.Vars(req)
 		name := vars["name"]
@@ -91,10 +104,7 @@ func main() {
 			}
 			rw.Header().Set("Content-Type", "application/json")
 			rw.WriteHeader(http.StatusOK)
-			_ = json.NewEncoder(rw).Encode(map[string]int{
-				"width":  manager.Width(),
-				"height": manager.Height(),
-			})
+			_ = json.NewEncoder(rw).Encode(manager)
 			return
 		}
 		http.Error(rw, "404 Not Found", http.StatusNotFound)

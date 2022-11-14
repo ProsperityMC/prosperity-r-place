@@ -15,9 +15,10 @@ import (
 const saveInterval = time.Second * 10
 
 type Manager struct {
+	Name    string `json:"name"`
+	Width   int    `json:"width"`
+	Height  int    `json:"height"`
 	file    *os.File
-	width   int
-	height  int
 	img     *image.RGBA
 	placing chan utils.Pixel
 	save    *time.Timer
@@ -34,9 +35,10 @@ func NewManager(name string, width, height int) (*Manager, error) {
 		return nil, fmt.Errorf("failed to open '.data/images/%s.png' for writing: %w", name, err)
 	}
 	m := &Manager{
+		Name:    name,
+		Width:   width,
+		Height:  height,
 		file:    create,
-		width:   width,
-		height:  height,
 		img:     image.NewRGBA(image.Rect(0, 0, width, height)),
 		placing: make(chan utils.Pixel, 32),
 		save:    time.NewTimer(saveInterval),
@@ -71,16 +73,6 @@ func (m *Manager) Image() []byte {
 	m.cacheS.RLock()
 	defer m.cacheS.RUnlock()
 	return m.cache
-}
-
-// Width returns the image width
-func (m *Manager) Width() int {
-	return m.width
-}
-
-// Height returns the image height
-func (m *Manager) Height() int {
-	return m.height
 }
 
 // backgroundIO handles all IO operations in a single thread
