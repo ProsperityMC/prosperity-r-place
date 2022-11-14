@@ -8,6 +8,9 @@
   let ws;
   let showMenu = true;
   let showPalette = true;
+  let menuSel = "pan";
+  let paletteSel = {name: "transparent", hex: "#ffffffff"};
+  let scale = 1;
 
   async function connectToWebsocket() {
     let wsUrl = `${getEnv("API_URL").replace("https://", "wss://")}/doc/${doc.name}`;
@@ -22,6 +25,15 @@
     console.log(`Starting editor for ${doc.name} - ${doc.width}x${doc.height}`);
     connectToWebsocket();
   });
+
+  const menuButtons = [
+    {key: "pan", icon: "pan_tool", select: true},
+    {key: "pencil", icon: "edit", select: true},
+    {key: "fill", icon: "format_color_fill", select: true},
+    {key: "shape", icon: "shape_line", select: true},
+    {key: "select", icon: "select_all", select: true},
+    {key: "deselect", icon: "deselect", select: false},
+  ];
 </script>
 
 <div id="editor">
@@ -36,7 +48,7 @@
         showMenu = !showMenu;
       }}
     />
-    <div class="tool-gap" />
+    <div class="flex-gap" />
     <div
       class="tool-button"
       data-icon="palette"
@@ -52,24 +64,43 @@
     {#if ws}
       {#if showMenu}
         <div id="editor-tools">
-          <div class="tool-button" data-icon="pan_tool" />
-          <div class="tool-button" data-icon="edit" />
-          <div class="tool-button" data-icon="format_color_fill" />
-          <div class="tool-button" data-icon="shape_line" />
-          <div class="tool-button" data-icon="select_all" />
-          <div class="tool-button" data-icon="deselect" />
+          {#each menuButtons as b (b.key)}
+            <div
+              class="tool-button {menuSel == b.key ? 'tool-button-sel' : ''}"
+              data-icon={b.icon}
+              on:click={() => {
+                if (b.select) menuSel = b.key;
+              }}
+              on:keypress={() => {
+                if (b.select) menuSel = b.key;
+              }}
+            />
+          {/each}
         </div>
-        <div id="editor-shapes" />
+        {#if menuSel == "shape"}
+          <div id="editor-shapes">
+            <div class="tool-button" data-icon="square" />
+          </div>
+        {/if}
       {/if}
       <div id="editor-doc">
-        <Document {doc} />
+        <Document {doc} {menuSel} {paletteSel} bind:scale />
       </div>
       {#if showPalette}
         <div id="editor-palette">
           {#each colourPalette as palette}
             <div class="palette-panel">
               {#each palette.options as option}
-                <div class="palette-button" title="{option.name} {palette.name}">
+                <div
+                  class="palette-button"
+                  title="{option.name} {palette.name}"
+                  on:click={() => {
+                    paletteSel = option;
+                  }}
+                  on:keypress={() => {
+                    paletteSel = option;
+                  }}
+                >
                   <div class="palette-button-blob" style="background-color:{option.hex};" />
                 </div>
               {/each}
@@ -77,8 +108,19 @@
           {/each}
         </div>
       {/if}
+    {/if}
+  </div>
+  <div id="editor-statusbar">
+    {#if ws}
+      <div class="flex-gap" />
+      <div id="editor-zoom">
+        <div class="icon" data-icon="zoom_out" />
+        <div id="zoom-value">{Math.floor(scale * 100)}%</div>
+        <div class="icon" data-icon="zoom_in" />
+        <div class="icon" data-icon="fit_screen" />
+      </div>
     {:else}
-      <div>Connecting to live editor</div>
+      <div id="editor-connecting">Connecting to live editor</div>
     {/if}
   </div>
 </div>
@@ -131,9 +173,47 @@
         }
       }
     }
+
+    > #editor-statusbar {
+      height: 24px;
+      line-height: 24px;
+      background-color: darken($theme-bg, 5);
+      display: flex;
+
+      > #editor-zoom {
+        display: flex;
+
+        .icon {
+          @include mso;
+          width: 24px;
+          height: 24px;
+          display: flex;
+
+          &::before {
+            @include mso;
+            width: 16px;
+            height: 16px;
+            display: block;
+            content: attr(data-icon);
+            margin: auto;
+            font-size: 16px;
+            line-height: 16px;
+            white-space: pre;
+          }
+
+          &:hover {
+            background-color: lighten($theme-bg, 5);
+          }
+        }
+
+        > #zoom-value {
+          margin: 0 4px;
+        }
+      }
+    }
   }
 
-  .tool-gap {
+  .flex-gap {
     flex-grow: 1;
   }
 
@@ -144,14 +224,19 @@
 
     &::before {
       @include mso;
-      width: 32px;
-      height: 32px;
+      width: 24px;
+      height: 24px;
       display: block;
       content: attr(data-icon);
       margin: auto;
-      font-size: 32px;
-      line-height: 32px;
+      font-size: 24px;
+      line-height: 24px;
       white-space: pre;
+    }
+
+    &:hover,
+    &.tool-button-sel {
+      background-color: lighten($theme-bg, 5);
     }
   }
 
@@ -161,8 +246,8 @@
     display: flex;
 
     > .palette-button-blob {
-      width: 32px;
-      height: 32px;
+      width: 24px;
+      height: 24px;
       margin: auto;
     }
   }

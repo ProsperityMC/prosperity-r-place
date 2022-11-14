@@ -4,6 +4,8 @@
   import DocumentCanvas from "./DocumentCanvas.svelte";
 
   export let doc;
+  export let menuSel;
+  export let scale;
 
   let canvasWidth = 1000;
   let canvasHeight = 1000;
@@ -12,8 +14,8 @@
   let docCanvas;
 
   onMount(() => {
+    // small hack to get passive mouse move events
     let can = docCanvas.getCanvas();
-    console.log(can);
     can.addEventListener(
       "mousemove",
       function (e) {
@@ -27,7 +29,7 @@
 
 <div class="document" bind:clientWidth={canvasWidth} bind:clientHeight={canvasHeight}>
   <Canvas width={canvasWidth} height={canvasHeight} style="position:absolute;" bind:this={docCanvas}>
-    <DocumentCanvas docWidth={doc.width} docHeight={doc.height} {mouseX} {mouseY} />
+    <DocumentCanvas docWidth={doc.width} docHeight={doc.height} {mouseX} {mouseY} bind:scale {...$$restProps} />
   </Canvas>
 </div>
 
