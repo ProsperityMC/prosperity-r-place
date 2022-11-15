@@ -11,6 +11,7 @@
   let menuSel = "pan";
   let shapeSel = "circle";
   let paletteSel = {name: "transparent", hex: "#ffffffff"};
+  let zoomSel = -1;
   let scale = 1;
 
   async function connectToWebsocket() {
@@ -47,80 +48,44 @@
 
 <div id="editor">
   <div id="editor-navbar">
-    <div
-      class="tool-button"
-      data-icon="menu"
-      on:click={() => {
-        showMenu = !showMenu;
-      }}
-      on:keydown={() => {
-        showMenu = !showMenu;
-      }}
-    />
+    <!-- svelte-ignore a11y-click-events-have-key-events -->
+    <div class="tool-button" data-icon="menu" on:click={() => (showMenu = !showMenu)} />
     <div class="flex-gap" />
-    <div
-      class="tool-button"
-      data-icon="palette"
-      on:click={() => {
-        showPalette = !showPalette;
-      }}
-      on:keydown={() => {
-        showPalette = !showPalette;
-      }}
-    />
+    <!-- svelte-ignore a11y-click-events-have-key-events -->
+    <div class="tool-button" data-icon="palette" on:click={() => (showPalette = !showPalette)} />
   </div>
   <div id="editor-main">
     {#if ws}
       {#if showMenu}
         <div id="editor-tools">
           {#each menuButtons as b (b.key)}
-            <div
-              class="tool-button {menuSel == b.key ? 'tool-button-sel' : ''}"
-              data-icon={b.icon}
-              on:click={() => {
-                if (b.select) menuSel = b.key;
-              }}
-              on:keypress={() => {
-                if (b.select) menuSel = b.key;
-              }}
-            />
+            <!-- svelte-ignore a11y-click-events-have-key-events -->
+            <div class="tool-button {menuSel == b.key ? 'tool-button-sel' : ''}" data-icon={b.icon} on:click={() => b.select && (menuSel = b.key)} />
           {/each}
         </div>
         {#if menuSel == "shape"}
           <div id="editor-shapes">
             {#each shapeButtons as b (b.key)}
+              <!-- svelte-ignore a11y-click-events-have-key-events -->
               <div
                 class="tool-button {menuSel == b.key ? 'tool-button-sel' : ''}"
                 data-icon={b.icon}
-                on:click={() => {
-                  if (b.select) shapeSel = b.key;
-                }}
-                on:keypress={() => {
-                  if (b.select) shapeSel = b.key;
-                }}
+                on:click={() => b.select && (shapeSel = b.key)}
               />
             {/each}
           </div>
         {/if}
       {/if}
       <div id="editor-doc">
-        <Document {doc} {menuSel} {paletteSel} bind:scale />
+        <Document {doc} {menuSel} {zoomSel} {paletteSel} bind:scale />
       </div>
       {#if showPalette}
         <div id="editor-palette">
           {#each colourPalette as palette}
             <div class="palette-panel">
               {#each palette.options as option}
-                <div
-                  class="palette-button"
-                  title="{option.name} {palette.name}"
-                  on:click={() => {
-                    paletteSel = option;
-                  }}
-                  on:keypress={() => {
-                    paletteSel = option;
-                  }}
-                >
+                <!-- svelte-ignore a11y-click-events-have-key-events -->
+                <div class="palette-button" title="{option.name} {palette.name}" on:click={() => (paletteSel = option)}>
                   <div class="palette-button-blob" style="background-color:{option.hex};" />
                 </div>
               {/each}
@@ -134,10 +99,13 @@
     {#if ws}
       <div class="flex-gap" />
       <div id="editor-zoom">
-        <div class="icon" data-icon="zoom_out" />
+        <!-- svelte-ignore a11y-click-events-have-key-events -->
+        <div class="icon" data-icon="zoom_out" on:click={() => (scale -= 0.5) && (zoomSel = 0)} />
         <div id="zoom-value">{Math.floor(scale * 100)}%</div>
-        <div class="icon" data-icon="zoom_in" />
-        <div class="icon" data-icon="fit_screen" />
+        <!-- svelte-ignore a11y-click-events-have-key-events -->
+        <div class="icon" data-icon="zoom_in" on:click={() => (scale += 0.5) && (zoomSel = 0)} />
+        <!-- svelte-ignore a11y-click-events-have-key-events -->
+        <div class="icon {zoomSel == -1 ? 'zoom-sel' : ''}" data-icon="fit_screen" on:click={() => (zoomSel = -1)} />
       </div>
     {:else}
       <div id="editor-connecting">Connecting to live editor</div>
@@ -225,7 +193,8 @@
             white-space: pre;
           }
 
-          &:hover {
+          &:hover,
+          &.zoom-sel {
             background-color: lighten($theme-bg, 3);
           }
         }
