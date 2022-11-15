@@ -2,6 +2,7 @@ package prosperity_r_place
 
 import (
 	"github.com/gorilla/websocket"
+	"image"
 	"prosperity-r-place/shapes"
 	"prosperity-r-place/utils"
 	"strings"
@@ -40,11 +41,11 @@ outer:
 			pixels := make([]utils.Pixel, len(pixelsRaw))
 
 			for i, pixel := range pixelsRaw {
-				x, y, err := utils.ParseCoordinate(pixel)
+				p, err := utils.ParseCoordinate(pixel)
 				if err != nil {
 					break outer
 				}
-				pixels[i] = utils.Pixel{X: x, Y: y, Colour: colour}
+				pixels[i] = utils.Pixel{Point: p, Colour: colour}
 			}
 			manager.placing <- pixels
 			_ = conn.WriteMessage(websocket.TextMessage, []byte("done"))
@@ -64,20 +65,17 @@ outer:
 				break outer
 			}
 
-			left, top, err := utils.ParseCoordinate(line[3])
+			topLeft, err := utils.ParseCoordinate(line[3])
 			if err != nil {
 				break outer
 			}
 
-			right, bottom, err := utils.ParseCoordinate(line[4])
+			bottomRight, err := utils.ParseCoordinate(line[4])
 			if err != nil {
 				break outer
 			}
 
-			xDiff := right - left
-			yDiff := bottom - top
-
-			manager.placing <- shapes.PixelsInSquare(left, top, xDiff, yDiff, colour, fill)
+			manager.placing <- shapes.PixelsInSquare(image.Rectangle{Min: topLeft, Max: bottomRight}, colour, fill)
 			_ = conn.WriteMessage(websocket.TextMessage, []byte("done"))
 		case "pentagon":
 			_ = conn.WriteMessage(websocket.TextMessage, []byte("todo"))

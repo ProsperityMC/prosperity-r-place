@@ -85,7 +85,7 @@ outer:
 		case pixels := <-m.placing:
 			// set the pixels
 			for _, pixel := range pixels {
-				m.img.SetRGBA(int(pixel.X), int(pixel.Y), pixel.Colour)
+				m.img.SetRGBA(pixel.Point.X, pixel.Point.Y, pixel.Colour)
 			}
 			// if the last operation was not a save then restart the save timer
 			if lastSave {

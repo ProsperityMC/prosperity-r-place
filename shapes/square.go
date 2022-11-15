@@ -1,14 +1,16 @@
 package shapes
 
 import (
-	"fmt"
+	"image"
 	"image/color"
 	"prosperity-r-place/utils"
 )
 
-func PixelsInSquare(x1, y1, x2, y2 int, colour color.RGBA, fill bool) []utils.Pixel {
-	width := x2 - x1 + 1
-	height := y2 - y1 + 1
+func PixelsInSquare(rect image.Rectangle, colour color.RGBA, fill bool) []utils.Pixel {
+	// this correctly forms the rectangle points
+	rect = rect.Canon()
+	width := rect.Dx() + 1
+	height := rect.Dy() + 1
 	if fill {
 		// #####
 		// #####
@@ -17,7 +19,7 @@ func PixelsInSquare(x1, y1, x2, y2 int, colour color.RGBA, fill bool) []utils.Pi
 		pixels := make([]utils.Pixel, width*height)
 		for j := 0; j < height; j++ {
 			for i := 0; i < width; i++ {
-				pixels[j*width+i] = utils.Pixel{X: i + x1, Y: j + y1, Colour: colour}
+				pixels[j*width+i] = utils.Pixel{Point: rect.Min.Add(image.Point{X: i, Y: j}), Colour: colour}
 			}
 		}
 		return pixels
@@ -34,19 +36,16 @@ func PixelsInSquare(x1, y1, x2, y2 int, colour color.RGBA, fill bool) []utils.Pi
 		// 1234-
 		// -   -
 		// -8765
-		pixels[i] = utils.Pixel{X: i + x1, Y: y1, Colour: colour}
-		pixels[(width-1)+(height-1)+i] = utils.Pixel{X: (width - i - 1) + x1, Y: y2, Colour: colour}
+		pixels[i] = utils.Pixel{Point: rect.Min.Add(image.Point{X: i}), Colour: colour}
+		pixels[(width-1)+(height-1)+i] = utils.Pixel{Point: rect.Max.Add(image.Point{X: -i}), Colour: colour}
 	}
 	for i := 0; i < height-1; i++ {
 		// order of items
 		// ----1
 		// 4   2
 		// 3----
-		pixels[(width-1)+i] = utils.Pixel{X: x2, Y: i + y1, Colour: colour}
-		pixels[(width-1)*2+(height-1)+i] = utils.Pixel{X: x1, Y: (height - i - 1) + y1, Colour: colour}
-	}
-	for _, i := range pixels {
-		fmt.Printf("[A] %d, %d\n", i.X, i.Y)
+		pixels[(width-1)+i] = utils.Pixel{Point: image.Point{X: rect.Max.X, Y: i + rect.Min.Y}, Colour: colour}
+		pixels[(width-1)*2+(height-1)+i] = utils.Pixel{Point: image.Point{X: rect.Min.X, Y: rect.Max.Y - i}, Colour: colour}
 	}
 	return pixels
 }

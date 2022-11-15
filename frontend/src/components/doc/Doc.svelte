@@ -21,6 +21,7 @@
     }
 
     // render the current image
+    ctx.imageSmoothingEnabled = false;
     ctx.drawImage(docImage.main, offset + scrollX, offset + scrollY, doc.width * scale, doc.height * scale);
   };
 </script>

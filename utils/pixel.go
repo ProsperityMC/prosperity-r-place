@@ -1,8 +1,11 @@
 package utils
 
-import "image/color"
+import (
+	"image"
+	"image/color"
+)
 
 type Pixel struct {
-	X, Y   int
+	Point  image.Point
 	Colour color.RGBA
 }
