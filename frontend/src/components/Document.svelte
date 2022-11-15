@@ -1,9 +1,9 @@
 <script lang="ts">
   import {onMount} from "svelte";
   import {Canvas} from "svelte-canvas";
-  import type {Pixel} from "~/lib/Pixel";
   import {snapInsideLine} from "~/lib/SnapToBox";
   import Border from "./doc/Border.svelte";
+  import ClientEdits from "./doc/ClientEdits.svelte";
   import Cursor from "./doc/Cursor.svelte";
   import Doc from "./doc/Doc.svelte";
 
@@ -12,7 +12,7 @@
   export let doc;
   export let menuSel;
   export let zoomSel;
-  export let paletteSel;
+  export let paletteSel: number;
   export let scale;
 
   let canvasWidth = 0;
@@ -28,7 +28,7 @@
   let holdMouse = false;
   let docCanvas;
   let docOverflow;
-  let clientPixels: Pixel[] = [];
+  let clientPixels: Uint16Array = new Uint16Array(doc.width * doc.height);
 
   // if the document overflows the canvas area
   $: docOverflow = offset * 2 + doc.width * scale > canvasWidth || offset * 2 + doc.height * scale > canvasHeight;
@@ -67,6 +67,9 @@
         let maxScaleX = w / doc.width;
         let maxScaleY = h / doc.height;
 
+        // don't auto scale if the max scale is less than 0
+        if (maxScaleX < 0 || maxScaleY < 0) return 1;
+
         // use the smaller scale so the document is scaled perfectly
         return maxScaleX < maxScaleY ? maxScaleX : maxScaleY;
       })()
@@ -80,6 +83,7 @@
       e => {
         mouseX = e.layerX;
         mouseY = e.layerY;
+        checkDraw();
       },
       {passive: true},
     );
@@ -88,7 +92,10 @@
     can.addEventListener("mousedown", e => {
       startMouseX = e.layerX;
       startMouseY = e.layerY;
+      mouseX = e.layerX;
+      mouseY = e.layerY;
       holdMouse = true;
+      checkDraw();
     });
 
     // set the scroll position when releasing
@@ -106,18 +113,28 @@
       holdMouse = false;
     });
   });
+
+  function checkDraw() {
+    if (holdMouse) {
+      switch (menuSel) {
+        case "pencil":
+          clientPixels[cellY * doc.height + cellX] = paletteSel;
+          clientPixels = clientPixels;
+          break;
+      }
+    }
+  }
 </script>
 
 <div class="document {menuSel == 'pan' ? 'grab' : ''} {holdMouse ? 'grabbing' : ''}" bind:clientWidth={canvasWidth} bind:clientHeight={canvasHeight}>
-  {#if scale >= 0}
-    <Canvas width={canvasWidth} height={canvasHeight} style="position:absolute;" bind:this={docCanvas}>
+  <Canvas width={canvasWidth} height={canvasHeight} style="position:absolute;" bind:this={docCanvas}>
+    {#if scale >= 0}
       <Border {scrollX} {scrollY} docWidth={doc.width} docHeight={doc.height} {scale} />
       <Doc {scrollX} {scrollY} docWidth={doc.width} docHeight={doc.height} {scale} />
+      <ClientEdits {scrollX} {scrollY} docWidth={doc.width} docHeight={doc.height} {scale} {clientPixels} />
       <Cursor docWidth={doc.width} docHeight={doc.height} {cellX} {cellY} {scrollX} {scrollY} {scale} {menuSel} />
-    </Canvas>
-  {:else}
-    <div>Invalid document scale</div>
-  {/if}
+    {/if}
+  </Canvas>
 </div>
 
 <style lang="scss">

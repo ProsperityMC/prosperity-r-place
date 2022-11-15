@@ -3,6 +3,6 @@ package utils
 import "image/color"
 
 type Pixel struct {
-	X, Y   int64
+	X, Y   int
 	Colour color.RGBA
 }

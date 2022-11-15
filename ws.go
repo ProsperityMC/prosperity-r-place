@@ -1,12 +1,10 @@
 package prosperity_r_place
 
 import (
-	"bufio"
-	"fmt"
 	"github.com/gorilla/websocket"
-	"image/color"
+	"prosperity-r-place/shapes"
 	"prosperity-r-place/utils"
-	"strconv"
+	"strings"
 )
 
 func HandleWebsocket(conn *websocket.Conn, manager *Manager) {
@@ -15,7 +13,7 @@ func HandleWebsocket(conn *websocket.Conn, manager *Manager) {
 	}(conn)
 outer:
 	for {
-		messageType, r, err := conn.NextReader()
+		messageType, r, err := conn.ReadMessage()
 		if err != nil {
 			return
 		}
@@ -24,51 +22,64 @@ outer:
 			break
 		}
 
-		scanner := bufio.NewScanner(r)
-		scanner.Split(bufio.ScanWords)
-
-		var x, y int64
-		var colour color.RGBA
-		i := 0
-		for scanner.Scan() {
-			switch i {
-			case 0:
-				// parse X argument
-				x, err = strconv.ParseInt(scanner.Text(), 10, 64)
-				if err != nil {
-					break outer
-				}
-			case 1:
-				// parse Y argument
-				y, err = strconv.ParseInt(scanner.Text(), 10, 64)
-				if err != nil {
-					break outer
-				}
-			case 2:
-				// parse hex colour code
-				text := scanner.Text()
-				if text[0] == '#' {
-					colourParse, err := strconv.ParseInt(text[1:], 16, 64)
-					if err != nil {
-						break outer
-					}
-					r1 := (colourParse >> 16) & 0xff
-					g1 := (colourParse >> 8) & 0xff
-					b1 := colourParse & 0xff
-					colour = color.RGBA{R: uint8(r1), G: uint8(g1), B: uint8(b1), A: uint8(0xff)}
-				}
-			default:
-				// this is invalid
-				fmt.Printf("Invalid default: %v\n", i)
+		line := strings.Split(string(r), " ")
+		if len(line) < 1 {
+			break outer
+		}
+		switch line[0] {
+		case "draw":
+			if len(line) < 2 {
 				break outer
 			}
-			i++
-		}
-		if i != 3 {
-			break
-		}
+			colour, err := utils.ParseColor(line[1])
+			if err != nil {
+				break outer
+			}
 
-		manager.placing <- utils.Pixel{X: x, Y: y, Colour: colour}
-		_ = conn.WriteMessage(websocket.TextMessage, []byte("placed pixel"))
+			pixelsRaw := line[2:]
+			pixels := make([]utils.Pixel, len(pixelsRaw))
+
+			for i, pixel := range pixelsRaw {
+				x, y, err := utils.ParseCoordinate(pixel)
+				if err != nil {
+					break outer
+				}
+				pixels[i] = utils.Pixel{X: x, Y: y, Colour: colour}
+			}
+			manager.placing <- pixels
+			_ = conn.WriteMessage(websocket.TextMessage, []byte("done"))
+		case "circle":
+		case "square":
+			if len(line) != 5 {
+				break outer
+			}
+			fill, err := utils.ParseFill(line[1])
+			if err != nil {
+				break outer
+			}
+
+			colour, err := utils.ParseColor(line[2])
+			if err != nil {
+				break outer
+			}
+
+			left, top, err := utils.ParseCoordinate(line[3])
+			if err != nil {
+				break outer
+			}
+
+			right, bottom, err := utils.ParseCoordinate(line[4])
+			if err != nil {
+				break outer
+			}
+
+			xDiff := right - left
+			yDiff := bottom - top
+
+			manager.placing <- shapes.PixelsInSquare(left, top, xDiff, yDiff, colour, fill)
+			_ = conn.WriteMessage(websocket.TextMessage, []byte("done"))
+		case "pentagon":
+		case "hexagon":
+		}
 	}
 }

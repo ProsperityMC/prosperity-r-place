@@ -20,7 +20,7 @@ type Manager struct {
 	Height  int    `json:"height"`
 	file    *os.File
 	img     *image.RGBA
-	placing chan utils.Pixel
+	placing chan []utils.Pixel
 	save    *time.Timer
 	done    *utils.DoneChan
 	wg      *sync.WaitGroup
@@ -40,7 +40,7 @@ func NewManager(name string, width, height int) (*Manager, error) {
 		Height:  height,
 		file:    create,
 		img:     image.NewRGBA(image.Rect(0, 0, width, height)),
-		placing: make(chan utils.Pixel, 32),
+		placing: make(chan []utils.Pixel, 32),
 		save:    time.NewTimer(saveInterval),
 		done:    utils.NewDoneChan(),
 		wg:      &sync.WaitGroup{},
@@ -82,9 +82,11 @@ func (m *Manager) backgroundIO() {
 outer:
 	for {
 		select {
-		case pixel := <-m.placing:
-			// set the pixel
-			m.img.SetRGBA(int(pixel.X), int(pixel.Y), pixel.Colour)
+		case pixels := <-m.placing:
+			// set the pixels
+			for _, pixel := range pixels {
+				m.img.SetRGBA(int(pixel.X), int(pixel.Y), pixel.Colour)
+			}
 			// if the last operation was not a save then restart the save timer
 			if lastSave {
 				m.save.Reset(saveInterval)

@@ -1,5 +1,9 @@
 [
   {
+    "name": "Special",
+    "options": [{"name": "Transparent", "hex": "transparent"}]
+  },
+  {
     "name": "Wool",
     "options": [
       {"name": "Black", "hex": "#121519"},

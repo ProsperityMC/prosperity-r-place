@@ -10,7 +10,7 @@
   let showPalette = true;
   let menuSel = "pan";
   let shapeSel = "circle";
-  let paletteSel = {name: "transparent", hex: "#ffffffff"};
+  let paletteSel = 0; // numeric for special->transparent
   let zoomSel = -1;
   let scale = 1;
 
@@ -81,11 +81,11 @@
       </div>
       {#if showPalette}
         <div id="editor-palette">
-          {#each colourPalette as palette}
+          {#each colourPalette as palette, paletteI}
             <div class="palette-panel">
-              {#each palette.options as option}
+              {#each palette.options as option, optionI}
                 <!-- svelte-ignore a11y-click-events-have-key-events -->
-                <div class="palette-button" title="{option.name} {palette.name}" on:click={() => (paletteSel = option)}>
+                <div class="palette-button" title="{option.name} {palette.name}" on:click={() => (paletteSel = (paletteI << 8) | optionI)}>
                   <div class="palette-button-blob" style="background-color:{option.hex};" />
                 </div>
               {/each}
