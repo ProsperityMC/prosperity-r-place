@@ -49,6 +49,7 @@ outer:
 			manager.placing <- pixels
 			_ = conn.WriteMessage(websocket.TextMessage, []byte("done"))
 		case "circle":
+			_ = conn.WriteMessage(websocket.TextMessage, []byte("todo"))
 		case "square":
 			if len(line) != 5 {
 				break outer
@@ -79,7 +80,11 @@ outer:
 			manager.placing <- shapes.PixelsInSquare(left, top, xDiff, yDiff, colour, fill)
 			_ = conn.WriteMessage(websocket.TextMessage, []byte("done"))
 		case "pentagon":
+			_ = conn.WriteMessage(websocket.TextMessage, []byte("todo"))
 		case "hexagon":
+			_ = conn.WriteMessage(websocket.TextMessage, []byte("todo"))
+		default:
+			_ = conn.WriteMessage(websocket.TextMessage, []byte("todo"))
 		}
 	}
 }

@@ -130,7 +130,7 @@
   <Canvas width={canvasWidth} height={canvasHeight} style="position:absolute;" bind:this={docCanvas}>
     {#if scale >= 0}
       <Border {scrollX} {scrollY} docWidth={doc.width} docHeight={doc.height} {scale} />
-      <Doc {scrollX} {scrollY} docWidth={doc.width} docHeight={doc.height} {scale} />
+      <Doc {scrollX} {scrollY} {doc} {scale} />
       <ClientEdits {scrollX} {scrollY} docWidth={doc.width} docHeight={doc.height} {scale} {clientPixels} />
       <Cursor docWidth={doc.width} docHeight={doc.height} {cellX} {cellY} {scrollX} {scrollY} {scale} {menuSel} />
     {/if}
