@@ -12,7 +12,7 @@
   export let scale = 1;
   export let menuSel;
 
-  $: render = ({context: ctx, width, height}) => {
+  $: render = ({context: ctx}) => {
     // if the cellX and cellY are within the document area
     if (cellX >= 0 && cellY >= 0 && cellX < docWidth && cellY < docHeight) {
       switch (menuSel) {

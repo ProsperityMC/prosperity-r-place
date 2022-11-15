@@ -9,7 +9,7 @@
   export let docHeight = 0;
   export let scale = 1;
 
-  $: render = ({context: ctx, width, height}) => {
+  $: render = ({context: ctx}) => {
     // render the document border
     ctx.strokeStyle = "#ddd";
     ctx.lineWidth = 2;

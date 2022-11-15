@@ -1,6 +1,8 @@
 <script lang="ts">
   import {onMount} from "svelte";
   import {Canvas} from "svelte-canvas";
+  import type {Pixel} from "~/lib/Pixel";
+  import {snapInsideLine} from "~/lib/SnapToBox";
   import Border from "./doc/Border.svelte";
   import Cursor from "./doc/Cursor.svelte";
   import Doc from "./doc/Doc.svelte";
@@ -10,16 +12,40 @@
   export let doc;
   export let menuSel;
   export let zoomSel;
+  export let paletteSel;
   export let scale;
 
   let canvasWidth = 0;
   let canvasHeight = 0;
   let scrollX = 0;
   let scrollY = 0;
+  let startScrollX = 0;
+  let startScrollY = 0;
   let mouseX = 0;
   let mouseY = 0;
+  let startMouseX = 0;
+  let startMouseY = 0;
   let holdMouse = false;
   let docCanvas;
+  let docOverflow;
+  let clientPixels: Pixel[] = [];
+
+  // if the document overflows the canvas area
+  $: docOverflow = offset * 2 + doc.width * scale > canvasWidth || offset * 2 + doc.height * scale > canvasHeight;
+
+  // magic to calculate new scrollX position
+  $: scrollX = docOverflow
+    ? holdMouse && menuSel == "pan"
+      ? -snapInsideLine(startMouseX - mouseX - startScrollX, canvasWidth, offset * 2 + doc.width * scale)
+      : startScrollX
+    : 0;
+
+  // magic to calculate new scrollY position
+  $: scrollY = docOverflow
+    ? holdMouse && menuSel == "pan"
+      ? -snapInsideLine(startMouseY - mouseY - startScrollY, canvasHeight, offset * 2 + doc.height * scale)
+      : startScrollY
+    : 0;
 
   let cellX = 0;
   let cellY = 0;
@@ -30,6 +56,7 @@
 
   $: scale = zoomSel
     ? (() => {
+        // don't auto scale if canvasWidth and canvasHeight aren't set
         if (canvasWidth === 0 && canvasHeight === 0) return 1;
 
         // size of canvas without offset margin
@@ -56,10 +83,26 @@
       },
       {passive: true},
     );
-    can.addEventListener("mousedown", () => {
+
+    // set the start dragging mouse position
+    can.addEventListener("mousedown", e => {
+      startMouseX = e.layerX;
+      startMouseY = e.layerY;
       holdMouse = true;
     });
+
+    // set the scroll position when releasing
     can.addEventListener("mouseup", () => {
+      startScrollX = scrollX;
+      startScrollY = scrollY;
+      holdMouse = false;
+    });
+
+    can.addEventListener("mouseout", () => {
+      startScrollX = scrollX;
+      startScrollY = scrollY;
+      mouseX = 0;
+      mouseY = 0;
       holdMouse = false;
     });
   });
@@ -68,7 +111,7 @@
 <div class="document {menuSel == 'pan' ? 'grab' : ''} {holdMouse ? 'grabbing' : ''}" bind:clientWidth={canvasWidth} bind:clientHeight={canvasHeight}>
   {#if scale >= 0}
     <Canvas width={canvasWidth} height={canvasHeight} style="position:absolute;" bind:this={docCanvas}>
-      <Border docWidth={doc.width} docHeight={doc.height} bind:scale {...$$restProps} />
+      <Border {scrollX} {scrollY} docWidth={doc.width} docHeight={doc.height} {scale} />
       <Doc {scrollX} {scrollY} docWidth={doc.width} docHeight={doc.height} {scale} />
       <Cursor docWidth={doc.width} docHeight={doc.height} {cellX} {cellY} {scrollX} {scrollY} {scale} {menuSel} />
     </Canvas>
