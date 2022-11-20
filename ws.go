@@ -28,6 +28,8 @@ outer:
 			break outer
 		}
 		switch line[0] {
+		case "ping":
+			_ = conn.WriteMessage(websocket.TextMessage, []byte("pong"))
 		case "draw":
 			if len(line) < 2 {
 				break outer
@@ -82,7 +84,8 @@ outer:
 		case "hexagon":
 			_ = conn.WriteMessage(websocket.TextMessage, []byte("todo"))
 		default:
-			_ = conn.WriteMessage(websocket.TextMessage, []byte("todo"))
+			_ = conn.WriteMessage(websocket.TextMessage, []byte("error"))
+			break outer
 		}
 	}
 }

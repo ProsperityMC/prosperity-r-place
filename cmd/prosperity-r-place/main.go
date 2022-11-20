@@ -6,16 +6,20 @@ import (
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
+	"github.com/ravener/discord-oauth2"
+	"golang.org/x/oauth2"
 	"gopkg.in/yaml.v3"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
-	prosperity_r_place "prosperity-r-place"
+	prosperityRPlace "prosperity-r-place"
 	"sort"
 	"syscall"
 	"time"
 )
+
+var a int
 
 func main() {
 	err := os.MkdirAll(".data", os.ModePerm)
@@ -37,9 +41,9 @@ func main() {
 		log.Fatal("Failed to decode config:", err)
 	}
 
-	managers := make(map[string]*prosperity_r_place.Manager)
+	managers := make(map[string]*prosperityRPlace.Manager)
 	for i, slot := range conf.Slots {
-		manager, err := prosperity_r_place.NewManager(slot.Name, slot.Width, slot.Height)
+		manager, err := prosperityRPlace.NewManager(slot.Name, slot.Width, slot.Height)
 		if err != nil {
 			log.Fatalf("error with slot %d: %v", i, err)
 		}
@@ -65,6 +69,13 @@ func main() {
 	wsUpgrader := &websocket.Upgrader{
 		CheckOrigin: func(req *http.Request) bool { return true },
 	}
+	oauthConf := &oauth2.Config{
+		RedirectURL:  os.Getenv("REDIRECT_URL"),
+		ClientID:     os.Getenv("DISCORD_ID"),
+		ClientSecret: os.Getenv("DISCORD_TOKEN"),
+		Scopes:       []string{discord.ScopeIdentify},
+		Endpoint:     discord.Endpoint,
+	}
 
 	router := mux.NewRouter()
 	router.HandleFunc("/", func(rw http.ResponseWriter, req *http.Request) {
@@ -73,7 +84,7 @@ func main() {
 		_, _ = rw.Write([]byte("Hello World!\n"))
 	})
 	router.Handle("/docs", cors(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-		a := make([]*prosperity_r_place.Manager, len(managers))
+		a := make([]*prosperityRPlace.Manager, len(managers))
 		i := 0
 		for _, manager := range managers {
 			a[i] = manager
@@ -93,13 +104,19 @@ func main() {
 				if err != nil {
 					http.Error(rw, "Failed to upgrade to websocket connection", http.StatusServiceUnavailable)
 				}
-				go prosperity_r_place.HandleWebsocket(upgrade, manager)
+				go prosperityRPlace.HandleWebsocket(upgrade, manager)
 				return
 			}
 			if req.URL.Query().Get("raw") == "image" {
+				img, hash := manager.Image()
+				if req.Header.Get("If-None-Match") == hash {
+					rw.WriteHeader(http.StatusNotModified)
+					return
+				}
 				rw.Header().Set("Content-Type", "image/png")
+				rw.Header().Set("ETag", hash)
 				rw.WriteHeader(http.StatusOK)
-				_, _ = rw.Write(manager.Image())
+				_, _ = rw.Write(img)
 				return
 			}
 			rw.Header().Set("Content-Type", "application/json")
@@ -109,6 +126,12 @@ func main() {
 		}
 		http.Error(rw, "404 Not Found", http.StatusNotFound)
 	})))
+	router.HandleFunc("/login", func(rw http.ResponseWriter, req *http.Request) {
+		http.Redirect(rw, req, oauthConf.AuthCodeURL(""), http.StatusTemporaryRedirect)
+	})
+	router.HandleFunc("/callback", func(rw http.ResponseWriter, req *http.Request) {
+		// TODO: add login
+	})
 	server := &http.Server{
 		Handler: router,
 		Addr:    conf.Listen,

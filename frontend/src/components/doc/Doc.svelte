@@ -10,14 +10,14 @@
   export let doc;
   export let scale = 1;
 
-  let docImage = new BufferImage();
+  let docImage = new BufferImage(`${getEnv("API_URL")}/doc/${doc.name}?raw=image`);
   let lastImage = 0;
 
   $: render = ({context: ctx}) => {
     // every 2s update the image using "_=timestamp"
     if ($t > lastImage + 2000) {
       lastImage = $t;
-      docImage.update(`${getEnv("API_URL")}/doc/${doc.name}?raw=image&_${lastImage}`);
+      docImage.update();
     }
 
     // render the current image

@@ -1,17 +1,18 @@
 export class BufferImage {
+  url: string;
   main: HTMLImageElement;
 
-  constructor() {
+  constructor(url) {
+    this.url = url;
     this.main = new Image();
     this.main.src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==";
   }
 
-  update(url) {
-    let that = this;
-    let a = new Image();
-    a.src = url;
-    a.onload = () => {
-      that.main = a;
-    };
+  update() {
+    fetch(this.url)
+      .then(res => res.blob())
+      .then(blob => {
+        this.main.src = URL.createObjectURL(blob);
+      });
   }
 }

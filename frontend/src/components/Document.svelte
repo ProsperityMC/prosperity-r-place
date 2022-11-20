@@ -1,11 +1,14 @@
 <script lang="ts">
-  import {onMount} from "svelte";
+  import {onDestroy, onMount} from "svelte";
   import {Canvas} from "svelte-canvas";
+  import {AlwaysOnWS} from "~/lib/AlwaysOnWS";
   import {snapInsideLine} from "~/lib/SnapToBox";
+  import {getEnv} from "~/utils/env";
   import Border from "./doc/Border.svelte";
   import ClientEdits from "./doc/ClientEdits.svelte";
   import Cursor from "./doc/Cursor.svelte";
   import Doc from "./doc/Doc.svelte";
+  import colourPalette from "~/assets/colours.json";
 
   const offset = 32;
 
@@ -15,6 +18,7 @@
   export let paletteSel: number;
   export let scale;
 
+  let ws: AlwaysOnWS;
   let canvasWidth = 0;
   let canvasHeight = 0;
   let scrollX = 0;
@@ -29,6 +33,24 @@
   let docCanvas;
   let docOverflow;
   let clientPixels: Uint16Array = new Uint16Array(doc.width * doc.height);
+
+  async function connectToWebsocket() {
+    let wsUrl = `${getEnv("API_URL").replace("https://", "wss://")}/doc/${doc.name}`;
+    console.log(`Connecting to WS: ${wsUrl}`);
+    let openWS = new AlwaysOnWS(wsUrl);
+    openWS.onopen = function () {
+      ws = openWS;
+    };
+  }
+
+  onMount(async () => {
+    console.log(`Starting editor for ${doc.name} - ${doc.width}x${doc.height}`);
+    connectToWebsocket();
+  });
+
+  onDestroy(()=>{
+    ws.close();
+  });
 
   // if the document overflows the canvas area
   $: docOverflow = offset * 2 + doc.width * scale > canvasWidth || offset * 2 + doc.height * scale > canvasHeight;
@@ -103,6 +125,7 @@
       startScrollX = scrollX;
       startScrollY = scrollY;
       holdMouse = false;
+      releaseMouse();
     });
 
     can.addEventListener("mouseout", () => {
@@ -111,6 +134,7 @@
       mouseX = 0;
       mouseY = 0;
       holdMouse = false;
+      releaseMouse();
     });
   });
 
@@ -118,11 +142,36 @@
     if (holdMouse) {
       switch (menuSel) {
         case "pencil":
-          clientPixels[cellY * doc.height + cellX] = paletteSel;
-          clientPixels = clientPixels;
+          if (cellX >= 0 && cellY >= 0 && cellX < doc.width && cellY < doc.height) {
+            clientPixels[cellY * doc.height + cellX] = paletteSel;
+            clientPixels = clientPixels;
+          }
           break;
       }
     }
+  }
+
+  function releaseMouse() {
+    let pixels: Map<string, {x: number; y: number}[]> = new Map();
+    for (let j = 0; j < doc.height; j++) {
+      for (let i = 0; i < doc.width; i++) {
+        let coord = clientPixels[j * doc.width + i];
+        if (coord === 0) continue;
+
+        let upper = (coord >> 8) & 0xff;
+        let lower = coord & 0xff;
+
+        let pixel = colourPalette[upper].options[lower];
+        if (!pixels.has(pixel.hex)) pixels.set(pixel.hex, []);
+        pixels.get(pixel.hex).push({x: i, y: j});
+      }
+    }
+
+    [...pixels.keys()].forEach(x => {
+      let colour = pixels.get(x);
+      ws.send(`draw ${x} ${colour.map(x => `${x.x},${x.y}`).join(" ")}`);
+    });
+    clientPixels = new Uint16Array(doc.width * doc.height);
   }
 </script>
 

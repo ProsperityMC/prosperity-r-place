@@ -2,6 +2,8 @@ package prosperity_r_place
 
 import (
 	"bytes"
+	"crypto/sha1"
+	"encoding/hex"
 	"fmt"
 	"image"
 	"image/png"
@@ -24,8 +26,9 @@ type Manager struct {
 	save    *time.Timer
 	done    *utils.DoneChan
 	wg      *sync.WaitGroup
-	cache   []byte
 	cacheS  *sync.RWMutex
+	cache   []byte
+	eTag    string
 }
 
 func NewManager(name string, width, height int) (*Manager, error) {
@@ -44,11 +47,12 @@ func NewManager(name string, width, height int) (*Manager, error) {
 		save:    time.NewTimer(saveInterval),
 		done:    utils.NewDoneChan(),
 		wg:      &sync.WaitGroup{},
-		cache:   nil,
 		cacheS:  &sync.RWMutex{},
+		cache:   nil,
+		eTag:    "",
 	}
 	// generate the first cache of the image
-	m.saveImage()
+	m.encodeImage()
 	// increment the wait group and start backgroundIO goroutine
 	m.wg.Add(1)
 	go m.backgroundIO()
@@ -69,10 +73,10 @@ func (m *Manager) Close() {
 }
 
 // Image returns the current cached image
-func (m *Manager) Image() []byte {
+func (m *Manager) Image() ([]byte, string) {
 	m.cacheS.RLock()
 	defer m.cacheS.RUnlock()
-	return m.cache
+	return m.cache, m.eTag
 }
 
 // backgroundIO handles all IO operations in a single thread
@@ -87,6 +91,7 @@ outer:
 			for _, pixel := range pixels {
 				m.img.SetRGBA(pixel.Point.X, pixel.Point.Y, pixel.Colour)
 			}
+			m.encodeImage()
 			// if the last operation was not a save then restart the save timer
 			if lastSave {
 				m.save.Reset(saveInterval)
@@ -109,7 +114,7 @@ outer:
 	}
 }
 
-func (m *Manager) saveImage() {
+func (m *Manager) encodeImage() {
 	// png encode the image to a file and log errors
 	buf := new(bytes.Buffer)
 	err := png.Encode(buf, m.img)
@@ -117,8 +122,17 @@ func (m *Manager) saveImage() {
 		log.Println("[Manager::backgroundIO] Failed to save PNG image:", err)
 		return
 	}
+	sum := sha1.Sum(buf.Bytes())
+	hex1 := hex.EncodeToString(sum[:])
 	m.cacheS.Lock()
 	m.cache = buf.Bytes()
+	m.eTag = hex1
 	m.cacheS.Unlock()
-	_, _ = m.file.ReadFrom(buf)
+}
+
+func (m *Manager) saveImage() {
+	m.cacheS.RLock()
+	a := m.cache
+	m.cacheS.RUnlock()
+	_, _ = m.file.Write(a)
 }

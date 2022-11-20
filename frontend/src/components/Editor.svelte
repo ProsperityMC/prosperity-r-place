@@ -1,11 +1,16 @@
 <script lang="ts">
-  import {onMount} from "svelte";
+  import {createEventDispatcher} from "svelte";
   import colourPalette from "~/assets/colours.json";
-  import {getEnv} from "~/utils/env";
   import Document from "./Document.svelte";
 
   export let doc;
-  let ws;
+
+  const dispatch = createEventDispatcher();
+
+  function triggerExit() {
+    dispatch("exit", {});
+  }
+
   let showMenu = true;
   let showPalette = true;
   let menuSel = "pan";
@@ -13,20 +18,6 @@
   let paletteSel = 0; // numeric for special->transparent
   let zoomSel = -1;
   let scale = 1;
-
-  async function connectToWebsocket() {
-    let wsUrl = `${getEnv("API_URL").replace("https://", "wss://")}/doc/${doc.name}`;
-    console.log(`Connecting to WS: ${wsUrl}`);
-    let openWS = new WebSocket(wsUrl);
-    openWS.onopen = function () {
-      ws = openWS;
-    };
-  }
-
-  onMount(async () => {
-    console.log(`Starting editor for ${doc.name} - ${doc.width}x${doc.height}`);
-    connectToWebsocket();
-  });
 
   const menuButtons = [
     {key: "pan", icon: "pan_tool", select: true},
@@ -55,61 +46,58 @@
     <div class="tool-button" data-icon="palette" on:click={() => (showPalette = !showPalette)} />
   </div>
   <div id="editor-main">
-    {#if ws}
-      {#if showMenu}
-        <div id="editor-tools">
-          {#each menuButtons as b (b.key)}
+    {#if showMenu}
+      <div id="editor-tools">
+        {#each menuButtons as b (b.key)}
+          <!-- svelte-ignore a11y-click-events-have-key-events -->
+          <div class="tool-button {menuSel == b.key ? 'tool-button-sel' : ''}" data-icon={b.icon} on:click={() => b.select && (menuSel = b.key)} />
+        {/each}
+        <div class="flex-gap" />
+        <!-- svelte-ignore a11y-click-events-have-key-events -->
+        <div class="tool-button" data-icon="close" on:click={() => triggerExit()} />
+      </div>
+      {#if menuSel == "shape"}
+        <div id="editor-shapes">
+          {#each shapeButtons as b (b.key)}
             <!-- svelte-ignore a11y-click-events-have-key-events -->
-            <div class="tool-button {menuSel == b.key ? 'tool-button-sel' : ''}" data-icon={b.icon} on:click={() => b.select && (menuSel = b.key)} />
+            <div class="tool-button {menuSel == b.key ? 'tool-button-sel' : ''}" data-icon={b.icon} on:click={() => b.select && (shapeSel = b.key)} />
           {/each}
         </div>
-        {#if menuSel == "shape"}
-          <div id="editor-shapes">
-            {#each shapeButtons as b (b.key)}
+      {/if}
+    {/if}
+    <div id="editor-doc">
+      <Document {doc} {menuSel} {zoomSel} {paletteSel} bind:scale />
+    </div>
+    {#if showPalette}
+      <div id="editor-palette">
+        {#each colourPalette as palette, paletteI}
+          <div class="palette-panel">
+            {#each palette.options as option, optionI}
               <!-- svelte-ignore a11y-click-events-have-key-events -->
-              <div
-                class="tool-button {menuSel == b.key ? 'tool-button-sel' : ''}"
-                data-icon={b.icon}
-                on:click={() => b.select && (shapeSel = b.key)}
-              />
+              <div class="palette-button" title="{option.name} {palette.name}" on:click={() => (paletteSel = (paletteI << 8) | optionI)}>
+                {#if option.name == "Transparent" && palette.name == "Special"}
+                  <div class="palette-button-blob" data-transparent />
+                {:else}
+                  <div class="palette-button-blob" style="background-color:{option.hex};" />
+                {/if}
+              </div>
             {/each}
           </div>
-        {/if}
-      {/if}
-      <div id="editor-doc">
-        <Document {doc} {menuSel} {zoomSel} {paletteSel} bind:scale />
+        {/each}
       </div>
-      {#if showPalette}
-        <div id="editor-palette">
-          {#each colourPalette as palette, paletteI}
-            <div class="palette-panel">
-              {#each palette.options as option, optionI}
-                <!-- svelte-ignore a11y-click-events-have-key-events -->
-                <div class="palette-button" title="{option.name} {palette.name}" on:click={() => (paletteSel = (paletteI << 8) | optionI)}>
-                  <div class="palette-button-blob" style="background-color:{option.hex};" />
-                </div>
-              {/each}
-            </div>
-          {/each}
-        </div>
-      {/if}
     {/if}
   </div>
   <div id="editor-statusbar">
-    {#if ws}
-      <div class="flex-gap" />
-      <div id="editor-zoom">
-        <!-- svelte-ignore a11y-click-events-have-key-events -->
-        <div class="icon" data-icon="zoom_out" on:click={() => (scale -= 0.5) && (zoomSel = 0)} />
-        <div id="zoom-value">{Math.floor(scale * 100)}%</div>
-        <!-- svelte-ignore a11y-click-events-have-key-events -->
-        <div class="icon" data-icon="zoom_in" on:click={() => (scale += 0.5) && (zoomSel = 0)} />
-        <!-- svelte-ignore a11y-click-events-have-key-events -->
-        <div class="icon {zoomSel == -1 ? 'zoom-sel' : ''}" data-icon="fit_screen" on:click={() => (zoomSel = -1)} />
-      </div>
-    {:else}
-      <div id="editor-connecting">Connecting to live editor</div>
-    {/if}
+    <div class="flex-gap" />
+    <div id="editor-zoom">
+      <!-- svelte-ignore a11y-click-events-have-key-events -->
+      <div class="icon" data-icon="zoom_out" on:click={() => (scale -= 0.5) && (zoomSel = 0)} />
+      <div id="zoom-value">{Math.floor(scale * 100)}%</div>
+      <!-- svelte-ignore a11y-click-events-have-key-events -->
+      <div class="icon" data-icon="zoom_in" on:click={() => (scale += 0.5) && (zoomSel = 0)} />
+      <!-- svelte-ignore a11y-click-events-have-key-events -->
+      <div class="icon {zoomSel == -1 ? 'zoom-sel' : ''}" data-icon="fit_screen" on:click={() => (zoomSel = -1)} />
+    </div>
   </div>
 </div>
 
@@ -138,11 +126,15 @@
       min-height: 0;
 
       > #editor-tools {
+        display: flex;
+        flex-direction: column;
         width: 48px;
         background-color: darken($theme-bg, 3);
       }
 
       > #editor-shapes {
+        display: flex;
+        flex-direction: column;
         width: 48px;
         background-color: darken($theme-bg, 6);
       }
@@ -160,6 +152,8 @@
         overflow-y: auto;
 
         > .palette-panel {
+          display: flex;
+          flex-direction: column;
           width: 48px;
           height: 100%;
         }
@@ -242,6 +236,15 @@
       width: 32px;
       height: 32px;
       margin: auto;
+
+      &[data-transparent] {
+        background-color: #f2f2f2;
+        $grey: #cdcdcd;
+        background-image: linear-gradient(45deg, $grey 25%, transparent 25%, transparent 75%, $grey 75%, $grey),
+          linear-gradient(45deg, $grey 25%, transparent 25%, transparent 75%, $grey 75%, $grey);
+        background-size: 32px 32px;
+        background-position: 0 0, 16px 16px;
+      }
     }
   }
 </style>
