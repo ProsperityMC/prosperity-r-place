@@ -2,8 +2,6 @@ package prosperity_r_place
 
 import (
 	"github.com/gorilla/websocket"
-	"image"
-	"prosperity-r-place/shapes"
 	"prosperity-r-place/utils"
 	"strings"
 )
@@ -28,8 +26,22 @@ outer:
 			break outer
 		}
 		switch line[0] {
-		case "ping":
-			_ = conn.WriteMessage(websocket.TextMessage, []byte("pong"))
+		case "check":
+			if len(line) == 2 {
+				manager.cacheS.RLock()
+				a := manager.eTag
+				if line[1] == a {
+					manager.cacheS.RUnlock()
+					_ = conn.WriteMessage(websocket.TextMessage, []byte("done"))
+				} else {
+					b := manager.cacheB
+					manager.cacheS.RUnlock()
+					_ = conn.WriteMessage(websocket.TextMessage, []byte("refresh "+a+" "+b))
+				}
+			} else {
+				_ = conn.WriteMessage(websocket.TextMessage, []byte("error"))
+				break outer
+			}
 		case "draw":
 			if len(line) < 2 {
 				break outer
@@ -51,38 +63,6 @@ outer:
 			}
 			manager.placing <- pixels
 			_ = conn.WriteMessage(websocket.TextMessage, []byte("done"))
-		case "circle":
-			_ = conn.WriteMessage(websocket.TextMessage, []byte("todo"))
-		case "square":
-			if len(line) != 5 {
-				break outer
-			}
-			fill, err := utils.ParseFill(line[1])
-			if err != nil {
-				break outer
-			}
-
-			colour, err := utils.ParseColor(line[2])
-			if err != nil {
-				break outer
-			}
-
-			topLeft, err := utils.ParseCoordinate(line[3])
-			if err != nil {
-				break outer
-			}
-
-			bottomRight, err := utils.ParseCoordinate(line[4])
-			if err != nil {
-				break outer
-			}
-
-			manager.placing <- shapes.PixelsInSquare(image.Rectangle{Min: topLeft, Max: bottomRight}, colour, fill)
-			_ = conn.WriteMessage(websocket.TextMessage, []byte("done"))
-		case "pentagon":
-			_ = conn.WriteMessage(websocket.TextMessage, []byte("todo"))
-		case "hexagon":
-			_ = conn.WriteMessage(websocket.TextMessage, []byte("todo"))
 		default:
 			_ = conn.WriteMessage(websocket.TextMessage, []byte("error"))
 			break outer

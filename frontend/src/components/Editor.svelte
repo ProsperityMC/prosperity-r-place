@@ -60,13 +60,13 @@
         <div id="editor-shapes">
           {#each shapeButtons as b (b.key)}
             <!-- svelte-ignore a11y-click-events-have-key-events -->
-            <div class="tool-button {menuSel == b.key ? 'tool-button-sel' : ''}" data-icon={b.icon} on:click={() => b.select && (shapeSel = b.key)} />
+            <div class="tool-button {shapeSel == b.key ? 'tool-button-sel' : ''}" data-icon={b.icon} on:click={() => b.select && (shapeSel = b.key)} />
           {/each}
         </div>
       {/if}
     {/if}
     <div id="editor-doc">
-      <Document {doc} {menuSel} {zoomSel} {paletteSel} bind:scale />
+      <Document {doc} {menuSel} {shapeSel} {zoomSel} {paletteSel} bind:scale />
     </div>
     {#if showPalette}
       <div id="editor-palette">
@@ -91,10 +91,10 @@
     <div class="flex-gap" />
     <div id="editor-zoom">
       <!-- svelte-ignore a11y-click-events-have-key-events -->
-      <div class="icon" data-icon="zoom_out" on:click={() => (scale -= 0.5) && (zoomSel = 0)} />
+      <div class="icon" data-icon="zoom_out" on:click={() => (scale -= 1) && (zoomSel = 0)} />
       <div id="zoom-value">{Math.floor(scale * 100)}%</div>
       <!-- svelte-ignore a11y-click-events-have-key-events -->
-      <div class="icon" data-icon="zoom_in" on:click={() => (scale += 0.5) && (zoomSel = 0)} />
+      <div class="icon" data-icon="zoom_in" on:click={() => (scale += 1) && (zoomSel = 0)} />
       <!-- svelte-ignore a11y-click-events-have-key-events -->
       <div class="icon {zoomSel == -1 ? 'zoom-sel' : ''}" data-icon="fit_screen" on:click={() => (zoomSel = -1)} />
     </div>

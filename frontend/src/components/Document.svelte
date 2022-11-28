@@ -9,16 +9,17 @@
   import Cursor from "./doc/Cursor.svelte";
   import Doc from "./doc/Doc.svelte";
   import colourPalette from "~/assets/colours.json";
+  import {GenerateShapePixels} from "~/lib/GenerateShapePixels";
 
   const offset = 32;
 
   export let doc;
   export let menuSel;
+  export let shapeSel;
   export let zoomSel;
   export let paletteSel: number;
   export let scale;
 
-  let ws: AlwaysOnWS;
   let canvasWidth = 0;
   let canvasHeight = 0;
   let scrollX = 0;
@@ -33,6 +34,12 @@
   let docCanvas;
   let docOverflow;
   let clientPixels: Uint16Array = new Uint16Array(doc.width * doc.height);
+  let shapeArea = {x1: 0, y1: 0, x2: 0, y2: 0};
+
+  let ws: AlwaysOnWS;
+  let clock: number;
+  let eTag: string;
+  let updateImage;
 
   async function connectToWebsocket() {
     let wsUrl = `${getEnv("API_URL").replace("https://", "wss://")}/doc/${doc.name}`;
@@ -40,7 +47,26 @@
     let openWS = new AlwaysOnWS(wsUrl);
     openWS.onopen = function () {
       ws = openWS;
+      clock = setInterval(() => _onclock(), 2000);
     };
+    openWS.onmessage = function (x) {
+      let args = x.data.split(" ");
+      if (args.length < 1) return;
+      switch (args[0]) {
+        case "refresh":
+          if (args.length !== 3) return;
+          eTag = args[1];
+          updateImage("data:image/png;base64," + args[2]);
+          break;
+      }
+    };
+    openWS.close = function () {
+      clearInterval(clock);
+    };
+  }
+
+  function _onclock() {
+    ws.send("check " + eTag);
   }
 
   onMount(async () => {
@@ -48,7 +74,7 @@
     connectToWebsocket();
   });
 
-  onDestroy(()=>{
+  onDestroy(() => {
     ws.close();
   });
 
@@ -117,6 +143,8 @@
       mouseX = e.layerX;
       mouseY = e.layerY;
       holdMouse = true;
+      shapeArea.x1 = cellX;
+      shapeArea.y1 = cellY;
       checkDraw();
     });
 
@@ -140,12 +168,17 @@
 
   function checkDraw() {
     if (holdMouse) {
+      shapeArea.x2 = cellX;
+      shapeArea.y2 = cellY;
       switch (menuSel) {
         case "pencil":
           if (cellX >= 0 && cellY >= 0 && cellX < doc.width && cellY < doc.height) {
             clientPixels[cellY * doc.height + cellX] = paletteSel;
             clientPixels = clientPixels;
           }
+          break;
+        case "shape":
+          clientPixels = GenerateShapePixels(doc.width, doc.height, shapeArea, shapeSel, paletteSel);
           break;
       }
     }
@@ -179,7 +212,7 @@
   <Canvas width={canvasWidth} height={canvasHeight} style="position:absolute;" bind:this={docCanvas}>
     {#if scale >= 0}
       <Border {scrollX} {scrollY} docWidth={doc.width} docHeight={doc.height} {scale} />
-      <Doc {scrollX} {scrollY} {doc} {scale} />
+      <Doc {scrollX} {scrollY} {doc} {scale} bind:updateImage />
       <ClientEdits {scrollX} {scrollY} docWidth={doc.width} docHeight={doc.height} {scale} {clientPixels} />
       <Cursor docWidth={doc.width} docHeight={doc.height} {cellX} {cellY} {scrollX} {scrollY} {scale} {menuSel} />
     {/if}

@@ -1,7 +1,6 @@
 <script lang="ts">
   import {Layer, t} from "svelte-canvas";
   import {BufferImage} from "~/lib/BufferImage";
-  import {getEnv} from "~/utils/env";
 
   const offset = 32;
 
@@ -9,15 +8,19 @@
   export let scrollY;
   export let doc;
   export let scale = 1;
+  export let updateImage = x => (internalImage = x);
 
-  let docImage = new BufferImage(`${getEnv("API_URL")}/doc/${doc.name}?raw=image`);
+  let internalImage = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==";
+  let docImage = new BufferImage(
+    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==",
+  );
   let lastImage = 0;
 
   $: render = ({context: ctx}) => {
     // every 2s update the image using "_=timestamp"
     if ($t > lastImage + 2000) {
       lastImage = $t;
-      docImage.update();
+      docImage.update(internalImage);
     }
 
     // render the current image

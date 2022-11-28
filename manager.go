@@ -3,6 +3,7 @@ package prosperity_r_place
 import (
 	"bytes"
 	"crypto/sha1"
+	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"image"
@@ -27,6 +28,7 @@ type Manager struct {
 	done    *utils.DoneChan
 	wg      *sync.WaitGroup
 	cacheS  *sync.RWMutex
+	cacheB  string
 	cache   []byte
 	eTag    string
 }
@@ -48,6 +50,7 @@ func NewManager(name string, width, height int) (*Manager, error) {
 		done:    utils.NewDoneChan(),
 		wg:      &sync.WaitGroup{},
 		cacheS:  &sync.RWMutex{},
+		cacheB:  "",
 		cache:   nil,
 		eTag:    "",
 	}
@@ -124,8 +127,10 @@ func (m *Manager) encodeImage() {
 	}
 	sum := sha1.Sum(buf.Bytes())
 	hex1 := hex.EncodeToString(sum[:])
+	b64 := base64.StdEncoding.EncodeToString(buf.Bytes())
 	m.cacheS.Lock()
 	m.cache = buf.Bytes()
+	m.cacheB = b64
 	m.eTag = hex1
 	m.cacheS.Unlock()
 }
