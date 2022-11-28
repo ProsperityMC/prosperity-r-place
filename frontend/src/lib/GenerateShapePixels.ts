@@ -5,17 +5,25 @@ export function GenerateShapePixels(
   shapeSel: string,
   paletteSel: number,
 ) {
+  let cx = shapeArea.x1 < shapeArea.x2;
+  let sx = cx ? shapeArea.x1 : shapeArea.x2;
+  let lx = cx ? shapeArea.x2 : shapeArea.x1;
+
+  let cy = shapeArea.y1 < shapeArea.y2;
+  let sy = cy ? shapeArea.y1 : shapeArea.y2;
+  let ly = cy ? shapeArea.y2 : shapeArea.y1;
+
   let pixels = new Uint16Array(width * height);
   switch (shapeSel) {
     case "square":
-      for (let i = shapeArea.x1; i < shapeArea.x2; i++) {
-        pixels[shapeArea.y1 * width + i] = paletteSel;
-        pixels[shapeArea.y2 * width + i + 1] = paletteSel;
+      for (let i = sx; i < lx; i++) {
+        pixels[sy * width + i] = paletteSel;
+        pixels[ly * width + i + 1] = paletteSel;
       }
 
-      for (let i = shapeArea.y1; i < shapeArea.y2; i++) {
-        pixels[i * width + shapeArea.x2] = paletteSel;
-        pixels[(i + 1) * width + shapeArea.x1] = paletteSel;
+      for (let i = sy; i < ly; i++) {
+        pixels[i * width + lx] = paletteSel;
+        pixels[(i + 1) * width + sx] = paletteSel;
       }
       break;
   }

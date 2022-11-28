@@ -35,16 +35,23 @@ type Manager struct {
 
 func NewManager(name string, width, height int) (*Manager, error) {
 	fmt.Printf("[Manager] %s\n", name)
-	create, err := os.Create(fmt.Sprintf(".data/images/%s.png", name))
+	fPath := fmt.Sprintf(".data/images/%s.png", name)
+	img := image.NewRGBA(image.Rect(0, 0, width, height))
+	f, err := os.OpenFile(fPath, os.O_RDWR|os.O_CREATE, os.ModePerm)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open '.data/images/%s.png' for writing: %w", name, err)
+		return nil, fmt.Errorf("failed to open '.data/images/%s.png' for saving: %w", name, err)
+	} else {
+		im, err := png.Decode(f)
+		if err == nil {
+			img = utils.ImageToRGBA(im)
+		}
 	}
 	m := &Manager{
 		Name:    name,
 		Width:   width,
 		Height:  height,
-		file:    create,
-		img:     image.NewRGBA(image.Rect(0, 0, width, height)),
+		file:    f,
+		img:     img,
 		placing: make(chan []utils.Pixel, 32),
 		save:    time.NewTimer(saveInterval),
 		done:    utils.NewDoneChan(),

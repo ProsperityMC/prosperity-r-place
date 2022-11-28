@@ -228,9 +228,10 @@
   }
 
   .palette-button {
-    width: 48px;
-    height: 48px;
+    width: 32px;
+    height: 32px;
     display: flex;
+    padding: 8px;
 
     > .palette-button-blob {
       width: 32px;
