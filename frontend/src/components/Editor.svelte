@@ -50,7 +50,7 @@
 
   const shapeButtons = [
     {key: "circle", icon: Circle, select: true},
-    {key: "triagle", icon: Triangle, select: true},
+    {key: "triangle", icon: Triangle, select: true},
     {key: "square", icon: Square, select: true},
     {key: "diamond", icon: Diamond, select: true},
     {key: "hexagon", icon: Hexagon, select: true},
