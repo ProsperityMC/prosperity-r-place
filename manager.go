@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"image"
 	"image/png"
+	"io"
 	"log"
 	"os"
 	"prosperity-r-place/utils"
@@ -129,12 +130,14 @@ func (m *Manager) encodeImage() {
 	buf := new(bytes.Buffer)
 	err := png.Encode(buf, m.img)
 	if err != nil {
-		log.Println("[Manager::backgroundIO] Failed to save PNG image:", err)
+		log.Println("[Manager::backgroundIO] Failed to encode PNG image:", err)
 		return
 	}
+
 	sum := sha1.Sum(buf.Bytes())
 	hex1 := hex.EncodeToString(sum[:])
 	b64 := base64.StdEncoding.EncodeToString(buf.Bytes())
+
 	m.cacheS.Lock()
 	m.cache = buf.Bytes()
 	m.cacheB = b64
@@ -143,8 +146,21 @@ func (m *Manager) encodeImage() {
 }
 
 func (m *Manager) saveImage() {
+	_, err := m.file.Seek(0, io.SeekStart)
+	if err != nil {
+		log.Println("[Manager::backgroundIO] Failed to seek to the start of the image:", err)
+		return
+	}
+	err = m.file.Truncate(0)
+	if err != nil {
+		log.Println("[Manager::backgroundIO] Failed to truncate the image:", err)
+		return
+	}
 	m.cacheS.RLock()
 	a := m.cache
 	m.cacheS.RUnlock()
-	_, _ = m.file.Write(a)
+	_, err = m.file.Write(a)
+	if err != nil {
+		log.Println("[Manager::backgroundIO] Failed to save image:", err)
+	}
 }

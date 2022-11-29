@@ -2,6 +2,25 @@
   import {createEventDispatcher} from "svelte";
   import colourPalette from "~/assets/colours.json";
   import Document from "./Document.svelte";
+  import {
+    Menu,
+    Palette,
+    X,
+    Hand,
+    Edit2,
+    PaintBucket,
+    Square,
+    BoxSelect,
+    Slash,
+    Circle,
+    Triangle,
+    Diamond,
+    Hexagon,
+    Octagon,
+    ZoomOut,
+    ZoomIn,
+    Monitor,
+  } from "lucide-svelte";
 
   export let doc;
 
@@ -20,47 +39,58 @@
   let scale = 1;
 
   const menuButtons = [
-    {key: "pan", icon: "pan_tool", select: true},
-    {key: "pencil", icon: "edit", select: true},
-    {key: "fill", icon: "format_color_fill", select: true},
-    {key: "shape", icon: "shape_line", select: true},
-    {key: "select", icon: "select_all", select: true},
-    {key: "deselect", icon: "deselect", select: false},
+    {key: "pan", icon: Hand, select: true},
+    {key: "pencil", icon: Edit2, select: true},
+    {key: "fill", icon: PaintBucket, select: true},
+    {key: "shape", icon: Square, select: true},
+    {key: "select", icon: BoxSelect, select: true},
+    {key: "deselect", icon: Slash, select: false},
   ];
 
   const shapeButtons = [
-    {key: "circle", icon: "circle", select: true},
-    {key: "triagle", icon: "change_history", select: true},
-    {key: "square", icon: "square", select: true},
-    {key: "pentagon", icon: "pentagon", select: true},
-    {key: "hexagon", icon: "hexagon", select: true},
+    {key: "circle", icon: Circle, select: true},
+    {key: "triagle", icon: Triangle, select: true},
+    {key: "square", icon: Square, select: true},
+    {key: "diamond", icon: Diamond, select: true},
+    {key: "hexagon", icon: Hexagon, select: true},
+    {key: "octagon", icon: Octagon, select: true},
   ];
 </script>
 
 <div id="editor">
   <div id="editor-navbar">
     <!-- svelte-ignore a11y-click-events-have-key-events -->
-    <div class="tool-button" data-icon="menu" on:click={() => (showMenu = !showMenu)} />
+    <div class="tool-button" on:click={() => (showMenu = !showMenu)}>
+      <Menu />
+    </div>
     <div class="flex-gap" />
     <!-- svelte-ignore a11y-click-events-have-key-events -->
-    <div class="tool-button" data-icon="palette" on:click={() => (showPalette = !showPalette)} />
+    <div class="tool-button" on:click={() => (showPalette = !showPalette)}>
+      <Palette />
+    </div>
   </div>
   <div id="editor-main">
     {#if showMenu}
       <div id="editor-tools">
         {#each menuButtons as b (b.key)}
           <!-- svelte-ignore a11y-click-events-have-key-events -->
-          <div class="tool-button {menuSel == b.key ? 'tool-button-sel' : ''}" data-icon={b.icon} on:click={() => b.select && (menuSel = b.key)} />
+          <div class="tool-button {menuSel == b.key ? 'tool-button-sel' : ''}" on:click={() => b.select && (menuSel = b.key)}>
+            <svelte:component this={b.icon} />
+          </div>
         {/each}
         <div class="flex-gap" />
         <!-- svelte-ignore a11y-click-events-have-key-events -->
-        <div class="tool-button" data-icon="close" on:click={() => triggerExit()} />
+        <div class="tool-button" on:click={() => triggerExit()}>
+          <X />
+        </div>
       </div>
       {#if menuSel == "shape"}
         <div id="editor-shapes">
           {#each shapeButtons as b (b.key)}
             <!-- svelte-ignore a11y-click-events-have-key-events -->
-            <div class="tool-button {shapeSel == b.key ? 'tool-button-sel' : ''}" data-icon={b.icon} on:click={() => b.select && (shapeSel = b.key)} />
+            <div class="tool-button {shapeSel == b.key ? 'tool-button-sel' : ''}" on:click={() => b.select && (shapeSel = b.key)}>
+              <svelte:component this={b.icon} />
+            </div>
           {/each}
         </div>
       {/if}
@@ -91,18 +121,23 @@
     <div class="flex-gap" />
     <div id="editor-zoom">
       <!-- svelte-ignore a11y-click-events-have-key-events -->
-      <div class="icon" data-icon="zoom_out" on:click={() => (scale -= 1) && (zoomSel = 0)} />
+      <div class="icon" on:click={() => (scale -= 1) && (zoomSel = 0)}>
+        <ZoomOut />
+      </div>
       <div id="zoom-value">{Math.floor(scale * 100)}%</div>
       <!-- svelte-ignore a11y-click-events-have-key-events -->
-      <div class="icon" data-icon="zoom_in" on:click={() => (scale += 1) && (zoomSel = 0)} />
+      <div class="icon" on:click={() => (scale += 1) && (zoomSel = 0)}>
+        <ZoomIn />
+      </div>
       <!-- svelte-ignore a11y-click-events-have-key-events -->
-      <div class="icon {zoomSel == -1 ? 'zoom-sel' : ''}" data-icon="fit_screen" on:click={() => (zoomSel = -1)} />
+      <div class="icon {zoomSel == -1 ? 'zoom-sel' : ''}" on:click={() => (zoomSel = -1)}>
+        <Monitor />
+      </div>
     </div>
   </div>
 </div>
 
 <style lang="scss">
-  @import "../assets/material-symbols.scss";
   @import "../assets/theme.scss";
 
   #editor {
@@ -170,22 +205,11 @@
         display: flex;
 
         .icon {
-          @include mso;
           width: 32px;
           height: 32px;
           display: flex;
-
-          &::before {
-            @include mso;
-            width: 24px;
-            height: 24px;
-            display: block;
-            content: attr(data-icon);
-            margin: auto;
-            font-size: 24px;
-            line-height: 24px;
-            white-space: pre;
-          }
+          align-items: center;
+          justify-content: center;
 
           &:hover,
           &.zoom-sel {
@@ -208,18 +232,8 @@
     width: 48px;
     height: 48px;
     display: flex;
-
-    &::before {
-      @include mso;
-      width: 24px;
-      height: 24px;
-      display: block;
-      content: attr(data-icon);
-      margin: auto;
-      font-size: 24px;
-      line-height: 24px;
-      white-space: pre;
-    }
+    align-items: center;
+    justify-content: center;
 
     &:hover,
     &.tool-button-sel {
