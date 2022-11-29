@@ -19,6 +19,7 @@
   export let zoomSel;
   export let paletteSel: number;
   export let scale;
+  export let desel = () => (selArea = {x1: -1, y1: -1, x2: -1, y2: -1});
 
   let canvasWidth = 0;
   let canvasHeight = 0;
@@ -35,6 +36,16 @@
   let docOverflow;
   let clientPixels: Uint16Array = new Uint16Array(doc.width * doc.height);
   let shapeArea = {x1: 0, y1: 0, x2: 0, y2: 0};
+  let selArea = {x1: -1, y1: -1, x2: -1, y2: -1};
+  $: lockArea =
+    selArea.x1 !== -1 && selArea.y1 !== -1 && selArea.x2 !== -1 && selArea.y2 !== -1
+      ? {...selArea}
+      : {
+          x1: 0,
+          y1: 0,
+          x2: doc.width,
+          y2: doc.height,
+        };
 
   let ws: AlwaysOnWS;
   let clock: number;
@@ -143,8 +154,18 @@
       mouseX = e.layerX;
       mouseY = e.layerY;
       holdMouse = true;
-      shapeArea.x1 = cellX;
-      shapeArea.y1 = cellY;
+      switch (menuSel) {
+        case "shape":
+          if (cellX >= lockArea.x1 && cellX <= lockArea.x2) shapeArea.x1 = cellX;
+          if (cellY >= lockArea.y1 && cellY <= lockArea.y2) shapeArea.y1 = cellY;
+          shapeArea = shapeArea;
+          break;
+        case "select":
+          if (cellX >= lockArea.x1 && cellX <= lockArea.x2) selArea.x1 = cellX;
+          if (cellY >= lockArea.y1 && cellY <= lockArea.y2) selArea.y1 = cellY;
+          selArea = selArea;
+          break;
+      }
       checkDraw();
     });
 
@@ -168,17 +189,25 @@
 
   function checkDraw() {
     if (holdMouse) {
-      shapeArea.x2 = cellX;
-      shapeArea.y2 = cellY;
       switch (menuSel) {
         case "pencil":
-          if (cellX >= 0 && cellY >= 0 && cellX < doc.width && cellY < doc.height) {
+          if (cellX >= lockArea.x1 && cellY >= lockArea.y1 && cellX <= lockArea.x2 && cellY <= lockArea.y2) {
             clientPixels[cellY * doc.height + cellX] = paletteSel;
             clientPixels = clientPixels;
           }
           break;
         case "shape":
-          clientPixels = GenerateShapePixels(doc.width, doc.height, shapeArea, shapeSel, paletteSel);
+          if (cellX >= lockArea.x1 && cellY >= lockArea.y1 && cellX <= lockArea.x2 && cellY <= lockArea.y2) {
+            shapeArea.x2 = cellX;
+            shapeArea.y2 = cellY;
+            shapeArea = shapeArea;
+            clientPixels = GenerateShapePixels(doc.width, doc.height, shapeArea, shapeSel, paletteSel);
+          }
+          break;
+        case "select":
+          selArea.x2 = cellX;
+          selArea.y2 = cellY;
+          selArea = selArea;
           break;
       }
     }
@@ -213,7 +242,7 @@
     {#if scale >= 0}
       <Border {scrollX} {scrollY} docWidth={doc.width} docHeight={doc.height} {scale} />
       <Doc {scrollX} {scrollY} {doc} {scale} bind:updateImage />
-      <ClientEdits {scrollX} {scrollY} docWidth={doc.width} docHeight={doc.height} {scale} {clientPixels} />
+      <ClientEdits {scrollX} {scrollY} docWidth={doc.width} docHeight={doc.height} {scale} {clientPixels} {selArea} />
       <Cursor docWidth={doc.width} docHeight={doc.height} {cellX} {cellY} {scrollX} {scrollY} {scale} {menuSel} />
     {/if}
   </Canvas>

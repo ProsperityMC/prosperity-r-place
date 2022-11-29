@@ -37,6 +37,7 @@
   let paletteSel = 0; // numeric for special->transparent
   let zoomSel = -1;
   let scale = 1;
+  let desel;
 
   const menuButtons = [
     {key: "pan", icon: Hand, select: true},
@@ -44,7 +45,7 @@
     {key: "fill", icon: PaintBucket, select: true},
     {key: "shape", icon: Square, select: true},
     {key: "select", icon: BoxSelect, select: true},
-    {key: "deselect", icon: Slash, select: false},
+    {key: "deselect", icon: Slash, select: false, click: () => desel()},
   ];
 
   const shapeButtons = [
@@ -74,7 +75,7 @@
       <div id="editor-tools">
         {#each menuButtons as b (b.key)}
           <!-- svelte-ignore a11y-click-events-have-key-events -->
-          <div class="tool-button {menuSel == b.key ? 'tool-button-sel' : ''}" on:click={() => b.select && (menuSel = b.key)}>
+          <div class="tool-button {menuSel == b.key ? 'tool-button-sel' : ''}" on:click={() => (b.select ? (menuSel = b.key) : b.click())}>
             <svelte:component this={b.icon} />
           </div>
         {/each}
@@ -96,7 +97,7 @@
       {/if}
     {/if}
     <div id="editor-doc">
-      <Document {doc} {menuSel} {shapeSel} {zoomSel} {paletteSel} bind:scale />
+      <Document {doc} {menuSel} {shapeSel} {zoomSel} {paletteSel} bind:scale bind:desel />
     </div>
     {#if showPalette}
       <div id="editor-palette">
@@ -104,7 +105,11 @@
           <div class="palette-panel">
             {#each palette.options as option, optionI}
               <!-- svelte-ignore a11y-click-events-have-key-events -->
-              <div class="palette-button" title="{option.name} {palette.name}" on:click={() => (paletteSel = (paletteI << 8) | optionI)}>
+              <div
+                class="palette-button {paletteSel === (paletteI << 8) + optionI ? 'palette-selected' : ''}"
+                title="{option.name} {palette.name}"
+                on:click={() => (paletteSel = (paletteI << 8) + optionI)}
+              >
                 {#if option.name == "Transparent" && palette.name == "Special"}
                   <div class="palette-button-blob" data-transparent />
                 {:else}
@@ -246,6 +251,10 @@
     height: 32px;
     display: flex;
     padding: 8px;
+
+    &.palette-selected {
+      background-color: lighten($theme-bg, 3);
+    }
 
     > .palette-button-blob {
       width: 32px;
