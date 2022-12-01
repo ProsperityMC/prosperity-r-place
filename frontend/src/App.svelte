@@ -1,5 +1,4 @@
 <script lang="ts">
-  import {xlink_attr} from "svelte/internal";
   import Editor from "./components/Editor.svelte";
   import {getEnv} from "./utils/env";
 
@@ -12,6 +11,11 @@
 
   const t = new Date().getTime();
 </script>
+
+<svelte:head>
+  <script src="zlib.js"></script>
+  <script src="png.js"></script>
+</svelte:head>
 
 <main>
   {#if doc}

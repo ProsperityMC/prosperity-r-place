@@ -10,6 +10,7 @@
   import Doc from "./doc/Doc.svelte";
   import colourPalette from "~/assets/colours.json";
   import {GenerateShapePixels} from "~/lib/GenerateShapePixels";
+  import type {BufferImage} from "~/lib/BufferImage";
 
   const offset = 32;
 
@@ -33,6 +34,7 @@
   let startMouseY = 0;
   let holdMouse = false;
   let docCanvas;
+  let docImage: BufferImage;
   let docOverflow;
   let clientPixels: Uint16Array = new Uint16Array(doc.width * doc.height);
   let shapeArea = {x1: 0, y1: 0, x2: 0, y2: 0};
@@ -155,6 +157,11 @@
       mouseY = e.layerY;
       holdMouse = true;
       switch (menuSel) {
+        case "fill":
+          let ctx = docImage.main.getContext("2d");
+          let rect = docImage.main.getBoundingClientRect();
+          console.log(ctx.getImageData(0, 0, rect.width, rect.height));
+          break;
         case "shape":
           if (cellX >= lockArea.x1 && cellX <= lockArea.x2) shapeArea.x1 = cellX;
           if (cellY >= lockArea.y1 && cellY <= lockArea.y2) shapeArea.y1 = cellY;
@@ -241,7 +248,7 @@
   <Canvas width={canvasWidth} height={canvasHeight} style="position:absolute;" bind:this={docCanvas}>
     {#if scale >= 0}
       <Border {scrollX} {scrollY} docWidth={doc.width} docHeight={doc.height} {scale} />
-      <Doc {scrollX} {scrollY} {doc} {scale} bind:updateImage />
+      <Doc bind:docImage {scrollX} {scrollY} {doc} {scale} bind:updateImage />
       <ClientEdits {scrollX} {scrollY} docWidth={doc.width} docHeight={doc.height} {scale} {clientPixels} {selArea} />
       <Cursor docWidth={doc.width} docHeight={doc.height} {cellX} {cellY} {scrollX} {scrollY} {scale} {menuSel} />
     {/if}

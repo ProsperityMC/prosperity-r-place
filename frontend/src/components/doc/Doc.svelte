@@ -11,9 +11,9 @@
   export let updateImage = x => (internalImage = x);
 
   let internalImage = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==";
-  let docImage = new BufferImage(
+  export let docImage = new BufferImage(
     "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==",
-  );
+  ,doc.width,doc.height);
   let lastImage = 0;
 
   $: render = ({context: ctx}) => {

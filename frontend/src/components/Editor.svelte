@@ -53,8 +53,9 @@
     {key: "triangle", icon: Triangle, select: true},
     {key: "square", icon: Square, select: true},
     {key: "diamond", icon: Diamond, select: true},
-    {key: "hexagon", icon: Hexagon, select: true},
-    {key: "octagon", icon: Octagon, select: true},
+    // TODO: add hexagon and octagon rendering
+    //{key: "hexagon", icon: Hexagon, select: true},
+    //{key: "octagon", icon: Octagon, select: true},
   ];
 </script>
 

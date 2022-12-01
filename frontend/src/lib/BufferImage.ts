@@ -1,20 +1,15 @@
 export class BufferImage {
   url: string;
-  main: HTMLImageElement;
+  main: HTMLCanvasElement;
 
-  constructor(url) {
+  constructor(url, width, height) {
     this.url = url;
-    this.main = new Image();
-    this.main.src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==";
+    this.main = document.createElement("canvas");
+    this.update("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==");
   }
 
   update(url = "") {
-    if (url.startsWith("data:")) this.main.src = url;
-    else
-      fetch(url ? url : this.url)
-        .then(res => res.blob())
-        .then(blob => {
-          this.main.src = URL.createObjectURL(blob);
-        });
+    // PNG is imported... trust me...
+    PNG.load(url, this.main);
   }
 }

@@ -2,6 +2,7 @@ interface PixelCtx {
   pixels: Uint16Array;
   paletteSel: number;
   width: number;
+  height: number;
 }
 
 export function GenerateShapePixels(
@@ -34,7 +35,8 @@ export function GenerateShapePixels(
   let ctx: PixelCtx = {pixels, paletteSel, width};
   switch (shapeSel) {
     case "circle":
-      BresenhamEllipse(ctx, mx1, my1, dx / 2, dy / 2);
+      //console.log(shapeArea.x1, shapeArea.y1, dx / 2, dy / 2);
+      BresenhamEllipse(ctx, shapeArea.x1, shapeArea.y1, Math.abs(dx), Math.abs(dy));
       break;
     case "triangle":
       //   mx
@@ -63,9 +65,10 @@ export function GenerateShapePixels(
       //  \  /
       //   mx
       BresenhamLine(ctx, mx2, sy, lx, my1);
-      BresenhamLine(ctx, lx, my2, mx2, ly);
+      BresenhamLine(ctx, mx2, ly, lx, my2);
       BresenhamLine(ctx, mx1, ly, sx, my2);
-      BresenhamLine(ctx, sx, my1, mx1, sy);
+      BresenhamLine(ctx, mx1, sy, sx, my1);
+      break;
   }
   return pixels;
 }
@@ -153,5 +156,6 @@ function BresenhamEllipse(ctx: PixelCtx, cx: number, cy: number, rx: number, ry:
 }
 
 function PutPixel(ctx: PixelCtx, x: number, y: number) {
+  if (x < 0 || y < 0 || x >= ctx.width || y >= ctx.height) return;
   ctx.pixels[y * ctx.width + x] = ctx.paletteSel;
 }
