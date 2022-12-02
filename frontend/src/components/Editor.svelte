@@ -103,22 +103,24 @@
     {#if showPalette}
       <div id="editor-palette">
         {#each colourPalette as palette, paletteI}
-          <div class="palette-panel">
-            {#each palette.options as option, optionI}
-              <!-- svelte-ignore a11y-click-events-have-key-events -->
-              <div
-                class="palette-button {paletteSel === (paletteI << 8) + optionI ? 'palette-selected' : ''}"
-                title="{option.name} {palette.name}"
-                on:click={() => (paletteSel = (paletteI << 8) + optionI)}
-              >
-                {#if option.name == "Transparent" && palette.name == "Special"}
-                  <div class="palette-button-blob" data-transparent />
-                {:else}
-                  <div class="palette-button-blob" style="background-color:{option.hex};" />
-                {/if}
-              </div>
-            {/each}
-          </div>
+          {#if paletteI !== 0}
+            <div class="palette-panel">
+              {#each palette.options as option, optionI}
+                <!-- svelte-ignore a11y-click-events-have-key-events -->
+                <div
+                  class="palette-button {paletteSel === (paletteI << 8) + optionI ? 'palette-selected' : ''}"
+                  title="{option.name} {palette.name}"
+                  on:click={() => (paletteSel = (paletteI << 8) + optionI)}
+                >
+                  {#if option.name == "Transparent" && palette.name == "Special"}
+                    <div class="palette-button-blob" data-transparent />
+                  {:else}
+                    <div class="palette-button-blob" style="background-color:{option.hex};" />
+                  {/if}
+                </div>
+              {/each}
+            </div>
+          {/if}
         {/each}
       </div>
     {/if}

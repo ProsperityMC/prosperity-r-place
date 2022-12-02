@@ -13,7 +13,9 @@
   let internalImage = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==";
   export let docImage = new BufferImage(
     "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==",
-  ,doc.width,doc.height);
+    doc.width,
+    doc.height,
+  );
   let lastImage = 0;
 
   $: render = ({context: ctx}) => {

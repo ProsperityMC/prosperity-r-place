@@ -45,8 +45,8 @@
       : {
           x1: 0,
           y1: 0,
-          x2: doc.width,
-          y2: doc.height,
+          x2: doc.width - 1,
+          y2: doc.height - 1,
         };
 
   let ws: AlwaysOnWS;
@@ -159,12 +159,12 @@
       switch (menuSel) {
         case "fill":
           let ctx = docImage.main.getContext("2d");
-          let rect = docImage.main.getBoundingClientRect();
-          console.log(ctx.getImageData(0, 0, rect.width, rect.height));
+          let data = ctx.getImageData(0, 0, doc.width, doc.height);
+          clientPixels = GenerateFillPixels(doc.width, doc.height, {x: cellX, y: cellY}, data, paletteSel);
           break;
         case "shape":
-          if (cellX >= lockArea.x1 && cellX <= lockArea.x2) shapeArea.x1 = cellX;
-          if (cellY >= lockArea.y1 && cellY <= lockArea.y2) shapeArea.y1 = cellY;
+          shapeArea.x1 = cellX;
+          shapeArea.y1 = cellY;
           shapeArea = shapeArea;
           break;
         case "select":
@@ -204,12 +204,10 @@
           }
           break;
         case "shape":
-          if (cellX >= lockArea.x1 && cellY >= lockArea.y1 && cellX <= lockArea.x2 && cellY <= lockArea.y2) {
-            shapeArea.x2 = cellX;
-            shapeArea.y2 = cellY;
-            shapeArea = shapeArea;
-            clientPixels = GenerateShapePixels(doc.width, doc.height, shapeArea, shapeSel, paletteSel);
-          }
+          shapeArea.x2 = cellX;
+          shapeArea.y2 = cellY;
+          shapeArea = shapeArea;
+          clientPixels = GenerateShapePixels(doc.width, doc.height, shapeArea, shapeSel, paletteSel);
           break;
         case "select":
           selArea.x2 = cellX;

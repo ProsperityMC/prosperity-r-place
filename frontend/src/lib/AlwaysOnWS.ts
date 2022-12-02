@@ -11,6 +11,7 @@ export class AlwaysOnWS {
 
   constructor(url) {
     let that = this;
+    this.running = true;
     this.url = url;
     this.ws = new WebSocket(url);
     this.ws.onopen = () => that._triggerOpen();
