@@ -70,10 +70,10 @@ func main() {
 		CheckOrigin: func(req *http.Request) bool { return true },
 	}
 	oauthConf := &oauth2.Config{
-		RedirectURL:  os.Getenv("REDIRECT_URL"),
-		ClientID:     os.Getenv("DISCORD_ID"),
-		ClientSecret: os.Getenv("DISCORD_TOKEN"),
-		Scopes:       []string{discord.ScopeIdentify},
+		RedirectURL:  conf.Login.RedirectUrl,
+		ClientID:     conf.Login.Id,
+		ClientSecret: conf.Login.Token,
+		Scopes:       []string{discord.ScopeIdentify, discord.ScopeGuilds},
 		Endpoint:     discord.Endpoint,
 	}
 
@@ -130,6 +130,20 @@ func main() {
 		http.Redirect(rw, req, oauthConf.AuthCodeURL(""), http.StatusTemporaryRedirect)
 	})
 	router.HandleFunc("/callback", func(rw http.ResponseWriter, req *http.Request) {
+		if r.FormValue("state") != state {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte("State does not match."))
+			return
+		}
+		// Step 3: We exchange the code we got for an access token
+		// Then we can use the access token to do actions, limited to scopes we requested
+		token, err := conf.Exchange(context.Background(), r.FormValue("code"))
+
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(err.Error()))
+			return
+		}
 		// TODO: add login
 	})
 	server := &http.Server{

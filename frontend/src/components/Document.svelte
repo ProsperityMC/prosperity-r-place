@@ -11,6 +11,7 @@
   import colourPalette from "~/assets/colours.json";
   import {GenerateShapePixels} from "~/lib/GenerateShapePixels";
   import type {BufferImage} from "~/lib/BufferImage";
+  import {GenerateFillPixels} from "~/lib/GenerateFillPixels";
 
   const offset = 32;
 

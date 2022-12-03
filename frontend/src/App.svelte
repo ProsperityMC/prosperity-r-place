@@ -1,4 +1,5 @@
 <script lang="ts">
+  import {onMount} from "svelte";
   import Editor from "./components/Editor.svelte";
   import {getEnv} from "./utils/env";
 
@@ -8,6 +9,15 @@
     let f = await fetch(getEnv("API_URL") + "/docs");
     return await f.json();
   }
+
+  onMount(() => {
+    let s = new URLSearchParams(location.search);
+    if (s.has("code")) {
+      localStorage.setItem("login-code", s.get("code"));
+      s.delete("code");
+      location.href = location.pathname + "?" + s.toString();
+    }
+  });
 
   const t = new Date().getTime();
 </script>
@@ -22,6 +32,7 @@
     <Editor {doc} on:exit={_ => (doc = undefined)} />
   {:else}
     <h1>Prosperity r/place</h1>
+    <a href="{getEnv('API_URL')}/login">Login</a>
     {#await getDocList()}
       Loading...
     {:then docs}
@@ -55,6 +66,7 @@
     display: flex;
     flex-wrap: wrap;
     padding: 16px;
+    gap: 16px;
 
     > .doc-item {
       min-width: 220px;

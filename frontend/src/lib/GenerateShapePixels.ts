@@ -32,7 +32,7 @@ export function GenerateShapePixels(
   let my2 = Math.ceil(my);
 
   let pixels = new Uint16Array(width * height);
-  let ctx: PixelCtx = {pixels, paletteSel, width};
+  let ctx: PixelCtx = {pixels, paletteSel, width, height};
   switch (shapeSel) {
     case "circle":
       //console.log(shapeArea.x1, shapeArea.y1, dx / 2, dy / 2);
