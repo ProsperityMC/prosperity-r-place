@@ -66,14 +66,16 @@
     for (var i = 0; i < arr.length; i++) if (typeof arr[i] != "undefined") return arr[i];
   }
 
-  function generateAvatarUrl(id: string, discriminator: string, hash: string): string {
+  function generateAvatarUrl(id: string, discriminator: string, hash: string, guild: boolean): string {
     if (hash === "") {
       let i = parseInt(discriminator);
       return `https://cdn.discordapp.com/embed/avatars/${i % 5}.png?size=512`;
     } else if (hash.startsWith("a_")) {
-      return `https://cdn.discordapp.com/avatars/${id}/${hash}.gif?size=512`;
+      if (guild) return `https://cdn.discordapp.com/guilds/${getEnv("API_GUILD")}/users/${id}/avatars/${hash}.gif?size=512`;
+      else return `https://cdn.discordapp.com/avatars/${id}/${hash}.gif?size=512`;
     } else {
-      return `https://cdn.discordapp.com/avatars/${id}/${hash}.png?size=512`;
+      if (guild) return `https://cdn.discordapp.com/guilds/${getEnv("API_GUILD")}/users/${id}/avatars/${hash}.png?size=512`;
+      else return `https://cdn.discordapp.com/avatars/${id}/${hash}.png?size=512`;
     }
   }
 
@@ -97,14 +99,14 @@
       {#if $profileStore}
         {#if $profileStore.avatar}
           <img
-            src={generateAvatarUrl($profileStore.user.id, $profileStore.user.discriminator, $profileStore.avatar)}
+            src={generateAvatarUrl($profileStore.user.id, $profileStore.user.discriminator, $profileStore.avatar, true)}
             width="32"
             height="32"
             alt="Discord Avatar"
           />
         {:else}
           <img
-            src={generateAvatarUrl($profileStore.user.id, $profileStore.user.discriminator, $profileStore.user.avatar ?? "")}
+            src={generateAvatarUrl($profileStore.user.id, $profileStore.user.discriminator, $profileStore.user.avatar ?? "", false)}
             width="32"
             height="32"
             alt="Discord Avatar"

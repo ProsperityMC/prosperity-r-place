@@ -59,13 +59,12 @@
 
   async function connectToWebsocket() {
     let wsUrl = `${getEnv("API_URL").replace("https://", "wss://")}/doc/${doc.name}?auth=${$loginStore ? $loginStore.access : ""}`;
-    console.log(`Connecting to WS: ${wsUrl}`);
+    console.log(`Connecting to WS`);
     let openWS = new AlwaysOnWS(wsUrl);
     openWS.onopen = function () {
       clock = setInterval(() => _onclock(), 2000);
     };
     openWS.onmessage = function (x) {
-      console.log(x.data);
       let args = x.data.split(" ");
       if (args.length < 1) return;
       switch (args[0]) {
