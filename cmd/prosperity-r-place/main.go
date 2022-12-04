@@ -1,25 +1,28 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/google/uuid"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 	"github.com/ravener/discord-oauth2"
 	"golang.org/x/oauth2"
 	"gopkg.in/yaml.v3"
+	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	prosperityRPlace "prosperity-r-place"
 	"sort"
+	"sync"
 	"syscall"
 	"time"
 )
-
-var a int
 
 func main() {
 	err := os.MkdirAll(".data", os.ModePerm)
@@ -77,6 +80,9 @@ func main() {
 		Endpoint:     discord.Endpoint,
 	}
 
+	allowedStates := make(map[string]struct{})
+	statesLock:=&sync.RWMutex{}
+
 	router := mux.NewRouter()
 	router.HandleFunc("/", func(rw http.ResponseWriter, req *http.Request) {
 		rw.Header().Set("Content-Type", "text/html")
@@ -127,24 +133,58 @@ func main() {
 		http.Error(rw, "404 Not Found", http.StatusNotFound)
 	})))
 	router.HandleFunc("/login", func(rw http.ResponseWriter, req *http.Request) {
-		http.Redirect(rw, req, oauthConf.AuthCodeURL(""), http.StatusTemporaryRedirect)
+		u := uuid.NewString()
+		statesLock.Lock()
+		allowedStates[u] = struct{}{}
+		statesLock.Unlock()
+		http.Redirect(rw, req, oauthConf.AuthCodeURL(u), http.StatusTemporaryRedirect)
 	})
 	router.HandleFunc("/callback", func(rw http.ResponseWriter, req *http.Request) {
-		if r.FormValue("state") != state {
-			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte("State does not match."))
+		u:=req.FormValue("state")
+		statesLock.RLock()
+		if _, ok := allowedStates[u]; !ok {
+			statesLock.RUnlock()
+			rw.WriteHeader(http.StatusBadRequest)
+			_, _ = rw.Write([]byte("State does not match."))
 			return
 		}
-		// Step 3: We exchange the code we got for an access token
-		// Then we can use the access token to do actions, limited to scopes we requested
-		token, err := conf.Exchange(context.Background(), r.FormValue("code"))
+		statesLock.RUnlock()
+		statesLock.Lock()
+		delete(allowedStates,u)
+		statesLock.Unlock()
+
+		token, err := oauthConf.Exchange(context.Background(), req.FormValue("code"))
 
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte(err.Error()))
+			rw.WriteHeader(http.StatusInternalServerError)
+			_, _ = rw.Write([]byte(err.Error()))
 			return
 		}
-		// TODO: add login
+
+		res, err := oauthConf.Client(context.Background(), token).Get("https://discord.com/api/users/@me/guilds")
+		if err != nil || res.StatusCode != 200 {
+			rw.WriteHeader(http.StatusInternalServerError)
+			if err != nil {
+				_, _ = rw.Write([]byte(err.Error()))
+			} else {
+				_, _ = rw.Write([]byte(res.Status))
+			}
+			return
+		}
+
+		defer func(Body io.ReadCloser) {
+			_ = Body.Close()
+		}(res.Body)
+
+		body, err := ioutil.ReadAll(res.Body)
+
+		if err != nil {
+			rw.WriteHeader(http.StatusInternalServerError)
+			_, _ = rw.Write([]byte(err.Error()))
+			return
+		}
+
+		rw.Write(body)
 	})
 	server := &http.Server{
 		Handler: router,
