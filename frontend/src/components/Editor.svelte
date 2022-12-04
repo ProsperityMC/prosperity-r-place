@@ -98,7 +98,7 @@
       {/if}
     {/if}
     <div id="editor-doc">
-      <Document {doc} {menuSel} {shapeSel} {zoomSel} {paletteSel} bind:scale bind:desel />
+      <Document {doc} {menuSel} {shapeSel} {zoomSel} {paletteSel} bind:scale bind:desel closeOut={triggerExit} />
     </div>
     {#if showPalette}
       <div id="editor-palette">

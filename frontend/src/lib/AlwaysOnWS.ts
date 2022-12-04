@@ -4,6 +4,7 @@ export class AlwaysOnWS {
   onopen;
   onmessage;
   onerror;
+  onclose;
   grow = 0;
   running: boolean;
   isOpen: boolean;
@@ -30,6 +31,7 @@ export class AlwaysOnWS {
     console.log("Closing connection to WS");
     this.isOpen = false;
     this.ws.close();
+    if (this.onclose) this.onclose();
   }
 
   _triggerOpen() {
@@ -55,6 +57,7 @@ export class AlwaysOnWS {
   }
 
   _triggerClose(x) {
+    console.error("Closed", x);
     this.isOpen = false;
     if (!this.running) return;
 

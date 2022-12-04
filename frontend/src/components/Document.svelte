@@ -12,6 +12,7 @@
   import {GenerateShapePixels} from "~/lib/GenerateShapePixels";
   import type {BufferImage} from "~/lib/BufferImage";
   import {GenerateFillPixels} from "~/lib/GenerateFillPixels";
+  import {loginStore} from "~/stores/login";
 
   const offset = 32;
 
@@ -22,6 +23,7 @@
   export let paletteSel: number;
   export let scale;
   export let desel = () => (selArea = {x1: -1, y1: -1, x2: -1, y2: -1});
+  export let closeOut: () => void;
 
   let canvasWidth = 0;
   let canvasHeight = 0;
@@ -56,14 +58,14 @@
   let updateImage;
 
   async function connectToWebsocket() {
-    let wsUrl = `${getEnv("API_URL").replace("https://", "wss://")}/doc/${doc.name}`;
+    let wsUrl = `${getEnv("API_URL").replace("https://", "wss://")}/doc/${doc.name}?auth=${$loginStore ? $loginStore.access : ""}`;
     console.log(`Connecting to WS: ${wsUrl}`);
     let openWS = new AlwaysOnWS(wsUrl);
     openWS.onopen = function () {
-      ws = openWS;
       clock = setInterval(() => _onclock(), 2000);
     };
     openWS.onmessage = function (x) {
+      console.log(x.data);
       let args = x.data.split(" ");
       if (args.length < 1) return;
       switch (args[0]) {
@@ -72,11 +74,17 @@
           eTag = args[1];
           updateImage("data:image/png;base64," + args[2]);
           break;
+        case "no-auth":
+          alert("Authorisation error, returning to home page");
+          openWS.close();
+          closeOut();
+          break;
       }
     };
-    openWS.close = function () {
+    openWS.onclose = function () {
       clearInterval(clock);
     };
+    ws = openWS;
   }
 
   function _onclock() {
