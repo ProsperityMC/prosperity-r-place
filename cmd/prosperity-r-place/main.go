@@ -12,7 +12,6 @@ import (
 	"encoding/pem"
 	"fmt"
 	"github.com/google/uuid"
-	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 	"github.com/mrmelon54/mjwt"
@@ -83,22 +82,6 @@ func main() {
 		managers[slot.Name] = manager
 	}
 
-	cors := handlers.CORS(
-		handlers.AllowCredentials(),
-		handlers.AllowedOrigins([]string{"*"}),
-		handlers.AllowedHeaders([]string{"Content-Type", "Authorization", "Upgrade"}),
-		handlers.AllowedMethods([]string{
-			http.MethodGet,
-			http.MethodHead,
-			http.MethodPost,
-			http.MethodPut,
-			http.MethodPatch,
-			http.MethodDelete,
-			http.MethodConnect,
-			http.MethodOptions,
-			http.MethodTrace,
-		}),
-	)
 	wsUpgrader := &websocket.Upgrader{
 		CheckOrigin: func(req *http.Request) bool { return true },
 	}
@@ -119,7 +102,7 @@ func main() {
 		rw.WriteHeader(http.StatusOK)
 		_, _ = rw.Write([]byte("Hello World!\n"))
 	})
-	router.Handle("/docs", cors(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+	router.HandleFunc("/docs", func(rw http.ResponseWriter, req *http.Request) {
 		a := make([]*prosperityRPlace.Manager, len(managers))
 		i := 0
 		for _, manager := range managers {
@@ -130,8 +113,8 @@ func main() {
 		rw.Header().Set("Content-Type", "application/json")
 		rw.WriteHeader(http.StatusOK)
 		_ = json.NewEncoder(rw).Encode(a)
-	})))
-	router.Handle("/doc/{name}", cors(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+	})
+	router.HandleFunc("/doc/{name}", func(rw http.ResponseWriter, req *http.Request) {
 		vars := mux.Vars(req)
 		name := vars["name"]
 		if manager, ok := managers[name]; ok {
@@ -172,7 +155,7 @@ func main() {
 			return
 		}
 		http.Error(rw, "404 Not Found", http.StatusNotFound)
-	})))
+	})
 	router.HandleFunc("/login", func(rw http.ResponseWriter, req *http.Request) {
 		u := uuid.NewString()
 		statesLock.Lock()
