@@ -9,6 +9,7 @@
   export let docWidth = 0;
   export let docHeight = 0;
   export let scale = 1;
+  export let awaitingPixels: Uint16Array;
   export let clientPixels: Uint16Array;
   export let selArea: {x1: number; y1: number; x2: number; y2: number};
 
@@ -16,11 +17,24 @@
     if (clientPixels.length === docWidth * docHeight) {
       for (let x = 0; x < docWidth; x++) {
         for (let y = 0; y < docHeight; y++) {
-          let n = clientPixels[y * docHeight + x];
+          let n = awaitingPixels[y * docHeight + x];
+          if (n == 0) continue;
           let upper = (n >> 8) & 0xff;
           let lower = n & 0xff;
           let pixel = colourPalette[upper].options[lower];
-          ctx.fillStyle = pixel.hex;
+          ctx.fillStyle = pixel.hex + "7f";
+          ctx.fillRect(offset + scrollX + x * scale, offset + scrollY + y * scale, scale, scale);
+        }
+      }
+
+      for (let x = 0; x < docWidth; x++) {
+        for (let y = 0; y < docHeight; y++) {
+          let n = clientPixels[y * docHeight + x];
+          if (n == 0) continue;
+          let upper = (n >> 8) & 0xff;
+          let lower = n & 0xff;
+          let pixel = colourPalette[upper].options[lower];
+          ctx.fillStyle = pixel.hex + "7f";
           ctx.fillRect(offset + scrollX + x * scale, offset + scrollY + y * scale, scale, scale);
         }
       }

@@ -16,6 +16,7 @@ type DiscordUser struct {
 
 type DiscordInfo struct {
 	UserId  string `yaml:"userId"`
+	Name    string `yaml:"name"`
 	Discord string `yaml:"discord"`
 }
 

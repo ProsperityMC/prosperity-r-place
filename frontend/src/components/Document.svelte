@@ -13,6 +13,8 @@
   import type {BufferImage} from "~/lib/BufferImage";
   import {GenerateFillPixels} from "~/lib/GenerateFillPixels";
   import {loginStore} from "~/stores/login";
+  import Users from "./doc/Users.svelte";
+  import type {Science, ScienceUser} from "~/lib/Science";
 
   const offset = 32;
 
@@ -22,7 +24,7 @@
   export let zoomSel;
   export let paletteSel: number;
   export let scale;
-  export let desel = () => (selArea = {x1: -1, y1: -1, x2: -1, y2: -1});
+  export const desel = () => (selArea = {x1: -1, y1: -1, x2: -1, y2: -1});
   export let closeOut: () => void;
 
   let canvasWidth = 0;
@@ -40,6 +42,7 @@
   let docImage: BufferImage;
   let docOverflow;
   let clientPixels: Uint16Array = new Uint16Array(doc.width * doc.height);
+  let awaitingPixels: Uint16Array = new Uint16Array(doc.width * doc.height);
   let shapeArea = {x1: 0, y1: 0, x2: 0, y2: 0};
   let selArea = {x1: -1, y1: -1, x2: -1, y2: -1};
   $: lockArea =
@@ -56,12 +59,17 @@
   let clock: number;
   let eTag: string;
   let updateImage;
+  let science: Science = {
+    names: new Map<string, string>(),
+    users: new Map<string, ScienceUser>(),
+  };
 
   async function connectToWebsocket() {
-    let wsUrl = `${getEnv("API_URL").replace("https://", "wss://")}/doc/${doc.name}?auth=${$loginStore ? $loginStore.access : ""}`;
+    let wsUrl = `${getEnv("API_URL").replace("https://", "wss://")}/doc/${doc.name}/live?auth=${$loginStore ? $loginStore.access : ""}`;
     console.log(`Connecting to WS`);
     let openWS = new AlwaysOnWS(wsUrl);
     openWS.onopen = function () {
+      openWS.send("start");
       clock = setInterval(() => _onclock(), 2000);
     };
     openWS.onmessage = function (x) {
@@ -69,14 +77,34 @@
       if (args.length < 1) return;
       switch (args[0]) {
         case "refresh":
-          if (args.length !== 3) return;
-          eTag = args[1];
-          updateImage("data:image/png;base64," + args[2]);
+          if (args.length !== 2) return;
+          updateImage("data:image/png;base64," + args[1]);
+          break;
+        case "ff":
+          openWS.send(`science selArea=${JSON.stringify(selArea)}`);
+          break;
+        case "names":
+          for (let i = 1; i < args.length; i++) {
+            let j = args[i].indexOf("=");
+            science.names[args[i].slice(0, j)] = args[i].slice(j + 1);
+          }
+          science = science;
+          break;
+        case "science":
+          if (args.length < 2) return;
+          let u = args[1];
+          for (let i = 2; i < args.length; i++) {
+            let j = args[i].indexOf("=");
+            science.users[u][args[i].slice(0, j)] = args[i].slice(j + 1);
+          }
+          science = science;
           break;
         case "no-auth":
           alert("Authorisation error, returning to home page");
           openWS.close();
           closeOut();
+          break;
+        case "pong":
           break;
       }
     };
@@ -87,7 +115,7 @@
   }
 
   function _onclock() {
-    ws.send("check " + eTag);
+    ws.send("ping");
   }
 
   onMount(async () => {
@@ -176,9 +204,11 @@
           shapeArea = shapeArea;
           break;
         case "select":
-          if (cellX >= lockArea.x1 && cellX <= lockArea.x2) selArea.x1 = cellX;
-          if (cellY >= lockArea.y1 && cellY <= lockArea.y2) selArea.y1 = cellY;
-          selArea = selArea;
+          if (cellX >= 0 && cellX <= doc.width && cellY >= 0 && cellY <= doc.height) {
+            selArea.x1 = cellX;
+            selArea.y1 = cellY;
+            selArea = selArea;
+          }
           break;
       }
       checkDraw();
@@ -216,11 +246,14 @@
           shapeArea.y2 = cellY;
           shapeArea = shapeArea;
           clientPixels = GenerateShapePixels(doc.width, doc.height, shapeArea, shapeSel, paletteSel);
+          ws.send(`science shape ${JSON.stringify(shapeArea)} ${shapeSel} ${paletteSel}`);
           break;
         case "select":
           selArea.x2 = cellX;
           selArea.y2 = cellY;
           selArea = selArea;
+
+          ws.send(`science selArea ${JSON.stringify(selArea)}`);
           break;
       }
     }
@@ -246,6 +279,7 @@
       let colour = pixels.get(x);
       ws.send(`draw ${x} ${colour.map(x => `${x.x},${x.y}`).join(" ")}`);
     });
+    awaitingPixels = clientPixels;
     clientPixels = new Uint16Array(doc.width * doc.height);
   }
 </script>
@@ -255,8 +289,9 @@
     {#if scale >= 0}
       <Border {scrollX} {scrollY} docWidth={doc.width} docHeight={doc.height} {scale} />
       <Doc bind:docImage {scrollX} {scrollY} {doc} {scale} bind:updateImage />
-      <ClientEdits {scrollX} {scrollY} docWidth={doc.width} docHeight={doc.height} {scale} {clientPixels} {selArea} />
+      <ClientEdits {scrollX} {scrollY} docWidth={doc.width} docHeight={doc.height} {scale} {awaitingPixels} {clientPixels} {selArea} />
       <Cursor docWidth={doc.width} docHeight={doc.height} {cellX} {cellY} {scrollX} {scrollY} {scale} {menuSel} />
+      <Users names={science.names} />
     {/if}
   </Canvas>
 </div>

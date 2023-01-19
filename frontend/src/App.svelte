@@ -11,7 +11,7 @@
   }
 
   function clickLoginButton() {
-    popupCenterScreen(`${getEnv("API_URL")}/login`, "Login with Discord", 800, 800, false);
+    popupCenterScreen(`${getEnv("API_URL")}/login`, "Login with Discord", 600, 900, false);
   }
 
   function handleMessage(event) {
@@ -38,6 +38,7 @@
   }
 
   function popupCenterScreen(url, title, w, h, focus) {
+    console.log(`Open popup center screen: ${w}, ${h}`);
     const top = (screen.availHeight - h) / 4,
       left = (screen.availWidth - w) / 2;
     const popup = openWindow(url, title, `scrollbars=yes,width=${w},height=${h},top=${top},left=${left}`);
@@ -130,7 +131,7 @@
         {#each docs as x}
           <!-- svelte-ignore a11y-click-events-have-key-events -->
           <div class="doc-item" on:click|preventDefault={() => (doc = x)}>
-            <img src="{getEnv('API_URL')}/doc/{x.name}?raw=image&_={t}" alt="{x.name} image" />
+            <img src="{getEnv('API_URL')}/doc/{x.name}/image?_={t}" alt="{x.name} image" />
             <h1>{x.name}</h1>
             <h2>{x.width} x {x.height}</h2>
           </div>
@@ -145,13 +146,6 @@
 <style lang="scss">
   @import "assets/theme.scss";
 
-  main > h1 {
-    color: #d2d2d2;
-    margin: 0;
-    padding: 16px;
-    line-height: normal;
-  }
-
   header {
     display: flex;
     padding: 0 32px;
@@ -159,6 +153,13 @@
     gap: 16px;
     background-color: lighten($theme-bg, 3);
     box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+
+    > h1 {
+      color: #d2d2d2;
+      margin: 0;
+      padding: 16px;
+      line-height: normal;
+    }
 
     > .flex-gap {
       flex-grow: 1;

@@ -66,12 +66,13 @@ export class AlwaysOnWS {
     if (this.grow == 0) this.grow = 1;
     if (this.grow > 15) this.grow = 15;
 
-    console.log("Socket has closed.", `A reconnect will be atempted in ${n} second${n === 1 ? "s" : ""}.`, x.reason);
+    console.log("Socket has closed.", `A reconnect will be attempted in ${n} second${n === 1 ? "s" : ""}.`, x.reason);
     let that = this;
     setTimeout(() => {
       let ws = new WebSocket(that.url);
       ws.onopen = () => {
         that.ws = ws;
+        if (that.onopen) that.onopen();
       };
       ws.onmessage = x => that._triggerMessage(x);
       ws.onclose = x => that._triggerClose(x);

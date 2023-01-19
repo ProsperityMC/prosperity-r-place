@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
+	"github.com/gorilla/websocket"
 	"image"
 	"image/png"
 	"io"
@@ -32,6 +33,14 @@ type Manager struct {
 	cacheB  string
 	cache   []byte
 	eTag    string
+	cMap    map[string]clientInfo
+	cLock   *sync.RWMutex
+}
+
+type clientInfo struct {
+	conn *websocket.Conn
+	info utils.DiscordInfo
+	send chan []byte
 }
 
 func NewManager(name string, width, height int) (*Manager, error) {
@@ -61,6 +70,8 @@ func NewManager(name string, width, height int) (*Manager, error) {
 		cacheB:  "",
 		cache:   nil,
 		eTag:    "",
+		cMap:    make(map[string]clientInfo),
+		cLock:   &sync.RWMutex{},
 	}
 	// generate the first cache of the image
 	m.encodeImage()
@@ -103,6 +114,7 @@ outer:
 				m.img.SetRGBA(pixel.Point.X, pixel.Point.Y, pixel.Colour)
 			}
 			m.encodeImage()
+			m.broadcastImage()
 			// if the last operation was not a save then restart the save timer
 			if lastSave {
 				m.save.Reset(saveInterval)
@@ -163,4 +175,37 @@ func (m *Manager) saveImage() {
 	if err != nil {
 		log.Println("[Manager::backgroundIO] Failed to save image:", err)
 	}
+}
+
+func (m *Manager) AddClient(uStr string, conn *websocket.Conn, info utils.DiscordInfo, sender chan []byte) {
+	m.cLock.Lock()
+	m.cMap[uStr] = clientInfo{
+		conn: conn,
+		info: info,
+		send: sender,
+	}
+	m.cLock.Unlock()
+	m.Broadcast([]byte(fmt.Sprintf("names %s=%s", uStr, info.Name)))
+}
+
+func (m *Manager) RemoveClient(uStr string) {
+	m.cLock.Lock()
+	delete(m.cMap, uStr)
+	m.cLock.Unlock()
+	m.Broadcast([]byte(fmt.Sprintf("quit %s", uStr)))
+}
+
+func (m *Manager) Broadcast(data []byte) {
+	m.cLock.RLock()
+	for _, v := range m.cMap {
+		v.send <- data
+	}
+	m.cLock.RUnlock()
+}
+
+func (m *Manager) broadcastImage() {
+	m.cacheS.RLock()
+	b := m.cacheB
+	m.cacheS.RUnlock()
+	m.Broadcast(append([]byte("refresh "), b...))
 }

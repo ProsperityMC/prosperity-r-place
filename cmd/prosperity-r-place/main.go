@@ -98,9 +98,7 @@ func main() {
 
 	router := mux.NewRouter()
 	router.HandleFunc("/", func(rw http.ResponseWriter, req *http.Request) {
-		rw.Header().Set("Content-Type", "text/html")
-		rw.WriteHeader(http.StatusOK)
-		_, _ = rw.Write([]byte("Hello World!\n"))
+		http.Error(rw, "Prosperity r/place API endpoint!", http.StatusOK)
 	})
 	router.HandleFunc("/docs", func(rw http.ResponseWriter, req *http.Request) {
 		a := make([]*prosperityRPlace.Manager, len(managers))
@@ -118,15 +116,42 @@ func main() {
 		vars := mux.Vars(req)
 		name := vars["name"]
 		if manager, ok := managers[name]; ok {
+			rw.Header().Set("Content-Type", "application/json")
+			rw.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(rw).Encode(manager)
+			return
+		}
+		http.Error(rw, "404 Not Found", http.StatusNotFound)
+	})
+	router.HandleFunc("/doc/{name}/image", func(rw http.ResponseWriter, req *http.Request) {
+		vars := mux.Vars(req)
+		name := vars["name"]
+		if manager, ok := managers[name]; ok {
+			img, hash := manager.Image()
+			if req.Header.Get("If-None-Match") == hash {
+				rw.WriteHeader(http.StatusNotModified)
+				return
+			}
+			rw.Header().Set("Content-Type", "image/png")
+			rw.Header().Set("ETag", hash)
+			rw.WriteHeader(http.StatusOK)
+			_, _ = rw.Write(img)
+			return
+		}
+		http.Error(rw, "404 Not Found", http.StatusNotFound)
+	})
+	router.HandleFunc("/doc/{name}/live", func(rw http.ResponseWriter, req *http.Request) {
+		vars := mux.Vars(req)
+		name := vars["name"]
+		if manager, ok := managers[name]; ok {
 			if websocket.IsWebSocketUpgrade(req) {
 				auth := req.URL.Query().Get("auth")
-				fmt.Println(auth)
 				upgrade, err := wsUpgrader.Upgrade(rw, req, rw.Header())
 				if err != nil {
 					http.Error(rw, "Failed to upgrade to websocket connection", http.StatusServiceUnavailable)
 				}
-				if _, _, err := mjwt.ExtractClaims[utils.DiscordInfo](signer, auth); err == nil {
-					go prosperityRPlace.HandleWebsocket(upgrade, manager)
+				if _, c, err := mjwt.ExtractClaims[utils.DiscordInfo](signer, auth); err == nil {
+					go prosperityRPlace.HandleWebsocket(upgrade, manager, c.Claims)
 				} else {
 					_ = upgrade.WriteMessage(websocket.TextMessage, []byte("no-auth"))
 					select {
@@ -137,22 +162,6 @@ func main() {
 				}
 				return
 			}
-			if req.URL.Query().Get("raw") == "image" {
-				img, hash := manager.Image()
-				if req.Header.Get("If-None-Match") == hash {
-					rw.WriteHeader(http.StatusNotModified)
-					return
-				}
-				rw.Header().Set("Content-Type", "image/png")
-				rw.Header().Set("ETag", hash)
-				rw.WriteHeader(http.StatusOK)
-				_, _ = rw.Write(img)
-				return
-			}
-			rw.Header().Set("Content-Type", "application/json")
-			rw.WriteHeader(http.StatusOK)
-			_ = json.NewEncoder(rw).Encode(manager)
-			return
 		}
 		http.Error(rw, "404 Not Found", http.StatusNotFound)
 	})
@@ -228,10 +237,9 @@ func main() {
 		dm.Roles = nil
 
 		dcToken, _ := encryptDiscordTokens(&privKey.PublicKey, token)
-		fmt.Println(dcToken)
 
 		u := uuid.NewString()
-		h, err := signer.GenerateJwt(u, u, time.Hour*24, utils.DiscordInfo{UserId: dm.User.Id, Discord: dcToken})
+		h, err := signer.GenerateJwt(u, u, time.Hour*24, utils.DiscordInfo{UserId: dm.User.Id, Name: dm.User.Username, Discord: dcToken})
 		if err != nil {
 			http.Error(rw, "Failed to generate JWT token", http.StatusInternalServerError)
 		}
