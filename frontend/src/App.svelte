@@ -84,8 +84,8 @@
 </script>
 
 <svelte:head>
-  <script src="zlib.js"></script>
-  <script src="png.js"></script>
+  <script src="/zlib.js"></script>
+  <script src="/png.js"></script>
 </svelte:head>
 
 <svelte:window on:message={handleMessage} />
