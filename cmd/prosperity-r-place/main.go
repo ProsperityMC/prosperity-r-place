@@ -11,10 +11,11 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
+	"github.com/1f349/mjwt"
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
-	"github.com/mrmelon54/mjwt"
 	"github.com/ravener/discord-oauth2"
 	"golang.org/x/oauth2"
 	"gopkg.in/yaml.v3"
@@ -71,7 +72,14 @@ func main() {
 		privKey, err = x509.ParsePKCS1PrivateKey(block.Bytes)
 		check("[Main] Failed to parse token signing key", err)
 	}
-	signer := mjwt.NewMJwtSigner(conf.Auth.Issuer, privKey)
+	keystore, err := mjwt.NewKeyStoreFromPath(".data/keystore")
+	if err != nil {
+		log.Fatal("Failed to create keystore:", err)
+	}
+	signer, err := mjwt.NewIssuerWithKeyStore("Prosperity r/place", "1137b7b7-5fe3-4458-8bb4-0fc2a441f83f", jwt.SigningMethodRS512, keystore)
+	if err != nil {
+		log.Fatal("Failed to create issuer:", err)
+	}
 
 	managers := make(map[string]*prosperityRPlace.Manager)
 	for i, slot := range conf.Slots {
@@ -150,7 +158,7 @@ func main() {
 				if err != nil {
 					http.Error(rw, "Failed to upgrade to websocket connection", http.StatusServiceUnavailable)
 				}
-				if _, c, err := mjwt.ExtractClaims[utils.DiscordInfo](signer, auth); err == nil {
+				if _, c, err := mjwt.ExtractClaims[utils.DiscordInfo](signer.KeyStore(), auth); err == nil {
 					go prosperityRPlace.HandleWebsocket(upgrade, manager, c.Claims)
 				} else {
 					_ = upgrade.WriteMessage(websocket.TextMessage, []byte("no-auth"))
@@ -239,7 +247,7 @@ func main() {
 		dcToken, _ := encryptDiscordTokens(&privKey.PublicKey, token)
 
 		u := uuid.NewString()
-		h, err := signer.GenerateJwt(u, u, time.Hour*24, utils.DiscordInfo{UserId: dm.User.Id, Name: dm.User.Username, Discord: dcToken})
+		h, err := signer.GenerateJwt(u, u, jwt.ClaimStrings{"Prosperity r/place"}, time.Hour*24, utils.DiscordInfo{UserId: dm.User.Id, Name: dm.User.Username, Discord: dcToken})
 		if err != nil {
 			http.Error(rw, "Failed to generate JWT token", http.StatusInternalServerError)
 		}
